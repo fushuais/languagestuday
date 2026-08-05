@@ -10,6 +10,7 @@ import {
   getSpeechPrefs,
 } from '../utils/speech.js'
 import { playStart, playFinish, playTick, playCount } from '../utils/sound.js'
+import { tap as hapticTap, success as hapticSuccess } from '../utils/haptics.js'
 import { GRADES, scoreSession } from '../utils/scoring.js'
 import useShortcuts from '../hooks/useShortcuts.js'
 import useEdgeStatus from '../hooks/useEdgeStatus.js'
@@ -116,6 +117,7 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
     setResult(null)
     setCountdown(3)
     setPhase('count')
+    hapticTap()
   }
 
   const startNow = () => {
@@ -125,6 +127,7 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
     setResult(null)
     setPhase('run')
     setRunning(true)
+    hapticTap()
   }
 
   const pause = () => setRunning(false)
@@ -133,6 +136,7 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
   const countSentence = () => {
     setSentences((s) => s + 1)
     playTick()
+    hapticTap()
   }
 
   const reset = () => {
@@ -151,6 +155,7 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
     stopAll()
     setRunning(false)
     playFinish()
+    hapticSuccess()
     const comp = scoreSession({ sentences, duration, elapsed, finished: !early })
     setResult(comp)
     onAddRecord({

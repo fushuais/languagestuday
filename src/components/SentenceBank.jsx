@@ -107,9 +107,10 @@ export default function SentenceBank({ lang = 'en' }) {
       )}
 
       {!error && !data && (
-        <div className="empty">
-          <div className="icon">⏳</div>
-          <p>正在载入句子库…</p>
+        <div className="skeleton-list" aria-label="载入中">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton skeleton-sec" />
+          ))}
         </div>
       )}
 

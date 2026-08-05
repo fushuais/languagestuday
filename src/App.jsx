@@ -4,6 +4,7 @@ import { INTERVIEW, interviewToTopic } from './data/interview.js'
 import PracticeView from './components/PracticeView.jsx'
 import TopicBrowser from './components/TopicBrowser.jsx'
 import SentenceBank from './components/SentenceBank.jsx'
+import SegmentedTabs from './components/SegmentedTabs.jsx'
 import InterviewView from './components/InterviewView.jsx'
 import HistoryView from './components/HistoryView.jsx'
 import Onboarding, { shouldOnboard } from './components/Onboarding.jsx'
@@ -22,6 +23,7 @@ import {
 } from './utils/storage.js'
 import { loadProfile, saveProfile } from './utils/profile.js'
 import { setSpeechLang, stopSpeech } from './utils/speech.js'
+import { tap, success } from './utils/haptics.js'
 import { useEffect, useState } from 'react'
 
 const JA_TOPICS = [...TOPICS, ...INTERVIEW.map(interviewToTopic)]
@@ -72,10 +74,12 @@ export default function App() {
       if (!ok) return
       setPracticeActive(false)
     }
+    tap()
     setView(next)
   }
 
   const pickTopic = (t) => {
+    tap()
     setTopic(t)
     setView('practice')
   }
@@ -102,19 +106,20 @@ export default function App() {
       setPracticeActive(false)
     }
     stopSpeech()
-    setSwitching(true)
-    window.setTimeout(() => {
-      setLang(next)
-      saveLang(next)
-      setTopic(next === 'en' ? EN_TOPICS[0] : JA_TOPICS[0])
-      setSearchQuery('')
-      if (next === 'en' && view === 'interview') setView('practice')
-      if (next === 'ja' && view === 'sentences') setView('practice')
-      setSwitching(false)
-    }, 230)
+      setSwitching(true)
+      window.setTimeout(() => {
+        setLang(next)
+        saveLang(next)
+        setTopic(next === 'en' ? EN_TOPICS[0] : JA_TOPICS[0])
+        setSearchQuery('')
+        if (next === 'en' && view === 'interview') setView('practice')
+        if (next === 'ja' && view === 'sentences') setView('practice')
+        setSwitching(false)
+      }, 300)
   }
 
   const startInterview = (item) => {
+    tap()
     pickTopic(interviewToTopic(item))
   }
 
@@ -224,17 +229,7 @@ export default function App() {
             ?
           </button>
           <EdgeStatusBadge />
-          <nav className="tabs">
-            {VIEWS.map((v) => (
-              <button
-                key={v.id}
-                className={`tab-btn ${view === v.id ? 'active' : ''}`}
-                onClick={() => changeView(v.id)}
-              >
-                {v.label}
-              </button>
-            ))}
-          </nav>
+          <SegmentedTabs items={VIEWS} active={view} onChange={changeView} />
         </div>
       </header>
 
