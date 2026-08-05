@@ -815,6 +815,12 @@ button {
   border: 1px solid rgba(233, 196, 106, 0.35);
 }
 
+.engine-badge.google {
+  color: #7fd1ff;
+  background: rgba(127, 209, 255, 0.12);
+  border: 1px solid rgba(127, 209, 255, 0.4);
+}
+
 .engine-badge.fallback {
   color: var(--accent-soft);
   background: rgba(230, 57, 70, 0.12);

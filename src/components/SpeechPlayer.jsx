@@ -81,10 +81,14 @@ export default function SpeechPlayer({ text, mini = false, compact = false, lang
 
   const statusBadge = engine ? (
     <span className={`engine-badge ${engine}`}>
-      {engine === 'edge' ? '⚡ 神経音声' : '🎧 システム音声'}
+      {engine === 'edge'
+        ? '⚡ 神経音声'
+        : engine === 'google'
+          ? '🌐 ネット音声'
+          : '🎧 システム音声'}
     </span>
   ) : edge === 'fallback' ? (
-    <span className="engine-badge fallback" title="Edge 神经语音不可用，已自动回退到系统日语语音">
+    <span className="engine-badge fallback" title="Edge 神经语音不可用，已自动回退到网络语音/系统日语语音">
       ⚠️ Edge 不可用
     </span>
   ) : null
