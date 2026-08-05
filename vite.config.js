@@ -17,7 +17,8 @@ function injectSwBuildId() {
       } catch {
         return
       }
-      const id = createHash('sha1').update(src).digest('hex').slice(0, 8)
+      const html = await readFile(resolve('dist/index.html'), 'utf8').catch(() => '')
+      const id = createHash('sha1').update(src + html).digest('hex').slice(0, 8)
       await writeFile(file, src.replace('__BUILD_ID__', id))
     },
   }
