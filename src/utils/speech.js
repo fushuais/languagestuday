@@ -14,7 +14,7 @@ let activeEdgeToken = 0
 const EDGE_TRUSTED_CLIENT_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4'
 const EDGE_SEC_MS_GEC_VERSION = '1-143.0.3650.75'
 const EDGE_OUTPUT_FORMAT = 'audio-24khz-48kbitrate-mono-mp3'
-const EDGE_TIMEOUT_MS = 25000
+const EDGE_TIMEOUT_MS = 10000
 
 export const DEFAULT_VOICE_JA = 'ja-JP-NanamiNeural'
 export const DEFAULT_VOICE_EN = 'en-US-AriaNeural'
@@ -125,6 +125,14 @@ export function isEdgeFallback() {
 
 export function edgeEnabled() {
   return edgeSettings.enabled && edgeChecked !== false
+}
+
+function isEdgeBrowser() {
+  return typeof navigator !== 'undefined' && /Edg\//i.test(navigator.userAgent)
+}
+
+function shouldTryEdge() {
+  return edgeSettings.enabled && edgeChecked !== false && isEdgeBrowser()
 }
 
 function edgeConnId() {
@@ -350,7 +358,9 @@ function googleTtsUrl(text) {
 }
 
 async function playGoogle(text, onEnd) {
-  const audio = new Audio(googleTtsUrl(text))
+  const audio = new Audio()
+  audio.referrerPolicy = 'no-referrer'
+  audio.src = googleTtsUrl(text)
   activeAudio = audio
   const cleanup = () => {
     if (activeAudio === audio) activeAudio = null
@@ -371,7 +381,7 @@ async function playGoogle(text, onEnd) {
 
 export async function speakTextAsync(text, { rate = 1, onEnd } = {}) {
   stopSpeech()
-  if (edgeSettings.enabled && edgeChecked !== false) {
+  if (shouldTryEdge()) {
     try {
       const engine = await edgeSpeak(text, rate, onEnd)
       if (engine === null) return 'none'
@@ -404,7 +414,7 @@ export function speakTextWait(text, { rate = 1, onEnd } = {}) {
         if (!ok) done('none')
       })
     }
-    if (edgeSettings.enabled && edgeChecked !== false) {
+    if (shouldTryEdge()) {
       edgeSpeak(text, rate, () => done('edge'))
         .then((engine) => {
           if (engine === null) done('none')
