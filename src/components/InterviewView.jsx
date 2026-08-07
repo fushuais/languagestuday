@@ -25,7 +25,7 @@ export default function InterviewView({
   const [draft, setDraft] = useState(profile)
   const [editingId, setEditingId] = useState(null)
   const [editDraft, setEditDraft] = useState('')
-  const [openSections, setOpenSections] = useState(() => new Set(SECTIONS.map((s) => s.id)))
+  const [openSections, setOpenSections] = useState(() => new Set())
 
   const finalAnswer = (item) => overrides[item.id] ?? renderAnswer(item.a, profile)
 
