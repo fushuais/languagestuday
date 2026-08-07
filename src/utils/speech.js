@@ -60,16 +60,22 @@ export function edgeStatus() {
 export function checkEdgeAvailability() {
   if (probing || typeof window === 'undefined') return Promise.resolve(edgeStatus())
   probing = true
-  return edgeProbeBrowser()
-    .then((ok) => {
-      if (ok) return true
-      return fetch('/api/tts?probe=1', { cache: 'no-store' })
+  const attempts = []
+  if (isEdgeBrowser()) {
+    attempts.push(edgeProbeBrowser().catch(() => false))
+  }
+  if (import.meta.env.DEV) {
+    attempts.push(
+      fetch('/api/tts?probe=1', { cache: 'no-store' })
         .then((res) => res.json().catch(() => null))
         .then((data) => data?.ok === true)
-    })
-    .then((ok) => {
-      edgeChecked = ok
-      return ok
+        .catch(() => false),
+    )
+  }
+  return Promise.all(attempts)
+    .then((results) => {
+      edgeChecked = results.some(Boolean)
+      return edgeChecked
     })
     .catch(() => {
       edgeChecked = false
@@ -132,7 +138,7 @@ function isEdgeBrowser() {
 }
 
 function shouldTryEdge() {
-  return edgeSettings.enabled && edgeChecked !== false && isEdgeBrowser()
+  return edgeSettings.enabled && edgeChecked !== false
 }
 
 function edgeConnId() {
@@ -342,7 +348,9 @@ async function edgeSpeak(text, rate, onEnd) {
   const voice = edgeVoiceForLang(currentLang)
   let blob
   try {
-    blob = await edgeSynthesizeBrowser(text, voice, ratePct)
+    blob = isEdgeBrowser()
+      ? await edgeSynthesizeBrowser(text, voice, ratePct)
+      : await edgeSynthesizeServer(text, voice, ratePct)
   } catch (e) {
     if (myToken !== activeEdgeToken) return null
     blob = await edgeSynthesizeServer(text, voice, ratePct)
