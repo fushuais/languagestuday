@@ -1163,7 +1163,65 @@ select:focus-visible {
 .iv-list {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.iv-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.18s ease;
+}
+
+.iv-section.open {
+  border-color: rgba(233, 196, 106, 0.4);
+}
+
+.iv-section-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 16px;
+  text-align: left;
+  background: linear-gradient(135deg, var(--bg-soft), var(--card));
+}
+
+.iv-section-title {
+  flex: 1;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.iv-section-title small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.iv-section-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(233, 196, 106, 0.12);
+  border: 1px solid rgba(233, 196, 106, 0.35);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-section-body {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  padding: 12px;
+  border-top: 1px dashed var(--border);
 }
 
 .iv-item {

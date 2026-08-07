@@ -49,7 +49,7 @@ export default function App() {
   const [lang, setLang] = useState(loadLang)
   const [theme, setTheme] = useState(loadTheme)
   const [switching, setSwitching] = useState(false)
-  const [view, setView] = useState('practice')
+  const [view, setView] = useState(() => (loadLang() === 'en' ? 'practice' : 'interview'))
   const [topic, setTopic] = useState(() => (loadLang() === 'en' ? EN_TOPICS[0] : JA_TOPICS[0]))
   const [history, setHistory] = useState(loadHistory)
   const [profile, setProfile] = useState(loadProfile)
