@@ -138,12 +138,11 @@ function isEdgeBrowser() {
 }
 
 function shouldTryEdge() {
-  return (
-    edgeSettings.enabled &&
-    edgeSettings.engine !== 'google' &&
-    edgeSettings.engine !== 'system' &&
-    edgeChecked !== false
-  )
+  if (!edgeSettings.enabled) return false
+  if (edgeSettings.engine === 'google' || edgeSettings.engine === 'system') return false
+  if (edgeChecked === false) return false
+  if (!import.meta.env.DEV && !isEdgeBrowser()) return false
+  return true
 }
 
 function preferredEngine() {
@@ -355,14 +354,21 @@ async function edgeSpeak(text, rate, onEnd) {
   const myToken = ++activeEdgeToken
   const ratePct = Math.round((rate - 1) * 100)
   const voice = edgeVoiceForLang(currentLang)
+  const inBrowser = isEdgeBrowser()
+  const serverOk = import.meta.env.DEV
+  const server = () => edgeSynthesizeServer(text, voice, ratePct)
   let blob
   try {
-    blob = isEdgeBrowser()
-      ? await edgeSynthesizeBrowser(text, voice, ratePct)
-      : await edgeSynthesizeServer(text, voice, ratePct)
+    blob = inBrowser ? await edgeSynthesizeBrowser(text, voice, ratePct) : await server()
   } catch (e) {
     if (myToken !== activeEdgeToken) return null
-    blob = await edgeSynthesizeServer(text, voice, ratePct)
+    if (inBrowser && serverOk) {
+      blob = await server()
+    } else if (!inBrowser && !serverOk) {
+      throw new Error('edge tts server unavailable on static host')
+    } else {
+      throw e
+    }
   }
   if (myToken !== activeEdgeToken) return null
   return playEdgeBlob(blob, onEnd)
