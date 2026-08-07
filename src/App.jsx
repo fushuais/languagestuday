@@ -20,6 +20,8 @@ import {
   saveGoal,
   loadLang,
   saveLang,
+  loadTheme,
+  saveTheme,
 } from './utils/storage.js'
 import { loadProfile, saveProfile } from './utils/profile.js'
 import { setSpeechLang, stopSpeech } from './utils/speech.js'
@@ -45,6 +47,7 @@ const VIEWS_EN = [
 
 export default function App() {
   const [lang, setLang] = useState(loadLang)
+  const [theme, setTheme] = useState(loadTheme)
   const [switching, setSwitching] = useState(false)
   const [view, setView] = useState('practice')
   const [topic, setTopic] = useState(() => (loadLang() === 'en' ? EN_TOPICS[0] : JA_TOPICS[0]))
@@ -67,6 +70,19 @@ export default function App() {
   useEffect(() => {
     setSpeechLang(lang)
   }, [lang])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', theme === 'light' ? '#f2f6fa' : '#0f1720')
+  }, [theme])
+
+  const toggleTheme = () => {
+    tap()
+    const next = theme === 'light' ? 'dark' : 'light'
+    setTheme(next)
+    saveTheme(next)
+  }
 
   const changeView = (next) => {
     if (next !== view && practiceActive) {
@@ -228,10 +244,28 @@ export default function App() {
           >
             ?
           </button>
+          <button
+            className="theme-btn"
+            onClick={toggleTheme}
+            title={theme === 'light' ? '深色模式' : '浅色模式'}
+            aria-label={theme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
+          >
+            {theme === 'light' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+              </svg>
+            )}
+          </button>
           <EdgeStatusBadge />
-          <SegmentedTabs items={VIEWS} active={view} onChange={changeView} />
         </div>
       </header>
+
+      <SegmentedTabs items={VIEWS} active={view} onChange={changeView} />
 
       <div className={`lang-stage ${switching ? 'lang-switching' : ''}`} key={lang}>
         {view === 'practice' && (
@@ -286,8 +320,9 @@ export default function App() {
           />
         )}
 
-        {showOnboard && <Onboarding onClose={() => setShowOnboard(false)} />}
       </div>
+
+      {showOnboard && <Onboarding onClose={() => setShowOnboard(false)} />}
     </div>
   )
 }

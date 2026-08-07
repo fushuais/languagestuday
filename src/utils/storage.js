@@ -4,6 +4,7 @@ const STATE_KEY = 'nihongo-topic-states-v1'
 const GOAL_KEY = 'nihongo-goal-v1'
 const SPEECH_KEY = 'nihongo-speech-prefs-v1'
 const LANG_KEY = 'nihongo-lang-v1'
+const THEME_KEY = 'nihongo-theme-v1'
 
 export const DEFAULT_GOAL_MIN = 5
 export const DEFAULT_SPEECH = { voice: 'ja-JP-NanamiNeural', rate: 1, enabled: true }
@@ -104,6 +105,22 @@ export function loadSpeechPrefs() {
 export function saveSpeechPrefs(prefs) {
   try {
     localStorage.setItem(SPEECH_KEY, JSON.stringify(prefs))
+  } catch {
+    // ignore
+  }
+}
+
+export function loadTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'
+  } catch {
+    return 'dark'
+  }
+}
+
+export function saveTheme(theme) {
+  try {
+    localStorage.setItem(THEME_KEY, theme)
   } catch {
     // ignore
   }
