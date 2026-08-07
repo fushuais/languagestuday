@@ -8,6 +8,7 @@ import SegmentedTabs from './components/SegmentedTabs.jsx'
 import InterviewView from './components/InterviewView.jsx'
 import HistoryView from './components/HistoryView.jsx'
 import Onboarding, { shouldOnboard } from './components/Onboarding.jsx'
+import About from './components/About.jsx'
 import EdgeStatusBadge from './components/EdgeStatusBadge.jsx'
 import {
   loadHistory,
@@ -58,6 +59,7 @@ export default function App() {
   const [goal, setGoal] = useState(loadGoal)
   const [searchQuery, setSearchQuery] = useState('')
   const [showOnboard, setShowOnboard] = useState(() => shouldOnboard())
+  const [showAbout, setShowAbout] = useState(false)
   const [practiceActive, setPracticeActive] = useState(false)
 
   const isEn = lang === 'en'
@@ -242,8 +244,8 @@ export default function App() {
           />
           <button
             className="help-btn"
-            onClick={() => setShowOnboard(true)}
-            title="帮助 / 快捷键"
+            onClick={() => setShowAbout(true)}
+            title="关于 / 项目介绍"
           >
             ?
           </button>
@@ -326,6 +328,7 @@ export default function App() {
       </div>
 
       {showOnboard && <Onboarding onClose={() => setShowOnboard(false)} />}
+      {showAbout && <About onClose={() => setShowAbout(false)} />}
     </div>
   )
 }
