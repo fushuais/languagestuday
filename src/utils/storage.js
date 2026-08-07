@@ -7,7 +7,7 @@ const LANG_KEY = 'nihongo-lang-v1'
 const THEME_KEY = 'nihongo-theme-v1'
 
 export const DEFAULT_GOAL_MIN = 5
-export const DEFAULT_SPEECH = { voice: 'ja-JP-NanamiNeural', rate: 1, enabled: true }
+export const DEFAULT_SPEECH = { voice: 'ja-JP-NanamiNeural', rate: 1, enabled: true, engine: 'auto' }
 
 export function loadLang() {
   try {

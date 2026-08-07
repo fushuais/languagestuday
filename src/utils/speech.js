@@ -138,7 +138,16 @@ function isEdgeBrowser() {
 }
 
 function shouldTryEdge() {
-  return edgeSettings.enabled && edgeChecked !== false
+  return (
+    edgeSettings.enabled &&
+    edgeSettings.engine !== 'google' &&
+    edgeSettings.engine !== 'system' &&
+    edgeChecked !== false
+  )
+}
+
+function preferredEngine() {
+  return edgeSettings.engine ?? 'auto'
 }
 
 function edgeConnId() {
@@ -389,12 +398,25 @@ async function playGoogle(text, onEnd) {
 
 export async function speakTextAsync(text, { rate = 1, onEnd } = {}) {
   stopSpeech()
+  const engine = preferredEngine()
+  if (engine === 'system') {
+    const ok = speakText(text, { rate, onEnd })
+    return ok ? 'web' : 'none'
+  }
+  if (engine === 'google') {
+    try {
+      return await playGoogle(text, onEnd)
+    } catch {
+      const ok = speakText(text, { rate, onEnd })
+      return ok ? 'web' : 'none'
+    }
+  }
   if (shouldTryEdge()) {
     try {
-      const engine = await edgeSpeak(text, rate, onEnd)
-      if (engine === null) return 'none'
+      const eng = await edgeSpeak(text, rate, onEnd)
+      if (eng === null) return 'none'
       edgeChecked = true
-      return engine
+      return eng
     } catch {
       edgeChecked = false
     }
@@ -422,10 +444,16 @@ export function speakTextWait(text, { rate = 1, onEnd } = {}) {
         if (!ok) done('none')
       })
     }
-    if (shouldTryEdge()) {
+    const engine = preferredEngine()
+    if (engine === 'system') {
+      const ok = speakText(text, { rate, onEnd: () => done('web') })
+      if (!ok) done('none')
+    } else if (engine === 'google') {
+      googleOrFallback()
+    } else if (shouldTryEdge()) {
       edgeSpeak(text, rate, () => done('edge'))
-        .then((engine) => {
-          if (engine === null) done('none')
+        .then((eng) => {
+          if (eng === null) done('none')
         })
         .catch(() => {
           edgeChecked = false

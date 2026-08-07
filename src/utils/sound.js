@@ -1,5 +1,28 @@
 let ctx = null
 
+const SOUND_KEY = 'nihongo-sound-v1'
+
+let enabled = true
+
+try {
+  enabled = localStorage.getItem(SOUND_KEY) !== 'false'
+} catch {
+  // ignore
+}
+
+export function setSoundEnabled(v) {
+  enabled = !!v
+  try {
+    localStorage.setItem(SOUND_KEY, String(enabled))
+  } catch {
+    // ignore
+  }
+}
+
+export function soundEnabledValue() {
+  return enabled
+}
+
 function getCtx() {
   if (typeof window === 'undefined') return null
   try {
@@ -12,6 +35,7 @@ function getCtx() {
 }
 
 export function playTone(freq, duration = 0.12, type = 'sine', volume = 0.15, delay = 0) {
+  if (!enabled) return
   const ac = getCtx()
   if (!ac) return
   const t = ac.currentTime + delay
