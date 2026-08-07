@@ -1,4 +1,4 @@
-const PROJECT_URL = 'https://github.com/fushuais/languagestuday'
+const PROJECT_URL = 'https://github.com/fushuais'
 
 export default function About({ onClose }) {
   return (
@@ -27,7 +27,7 @@ export default function About({ onClose }) {
           <div className="about-row">
             <span>项目地址</span>
             <a href={PROJECT_URL} target="_blank" rel="noreferrer">
-              GitHub · fushuais/languagestuday
+              GitHub · fushuais
             </a>
           </div>
         </div>
