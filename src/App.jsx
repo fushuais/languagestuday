@@ -79,9 +79,12 @@ export default function App() {
 
   const toggleTheme = () => {
     tap()
+    const root = document.documentElement
+    root.classList.add('theme-anim')
     const next = theme === 'light' ? 'dark' : 'light'
     setTheme(next)
     saveTheme(next)
+    window.setTimeout(() => root.classList.remove('theme-anim'), 450)
   }
 
   const changeView = (next) => {

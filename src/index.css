@@ -75,12 +75,27 @@ body {
 
 body {
   font-family: var(--font);
-  background: radial-gradient(1200px 700px at 20% -10%, var(--bg-glow) 0%, var(--bg) 55%);
+  background-color: var(--bg);
+  background-image: radial-gradient(1200px 700px at 20% -10%, var(--bg-glow) 0%, transparent 55%);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
   overflow-x: clip;
   -webkit-tap-highlight-color: transparent;
+}
+
+.theme-anim,
+.theme-anim *,
+.theme-anim *::before,
+.theme-anim *::after {
+  transition:
+    background-color 0.4s ease,
+    background 0.4s ease,
+    color 0.4s ease,
+    border-color 0.4s ease,
+    box-shadow 0.4s ease,
+    fill 0.4s ease,
+    stroke 0.4s ease !important;
 }
 
 button {
