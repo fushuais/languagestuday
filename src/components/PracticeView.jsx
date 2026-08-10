@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SpeechPlayer from './SpeechPlayer.jsx'
 import { renderAnswer } from '../data/interview.js'
 import {
@@ -43,10 +43,22 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
   const [hint, setHint] = useState(null)
   const [result, setResult] = useState(null)
   const [seq, setSeq] = useState(null)
+  const [paceIdx, setPaceIdx] = useState(0)
+  const [paceAuto, setPaceAuto] = useState(true)
   const edge = useEdgeStatus(false)
   const baseRef = useRef(0)
   const hintIdxRef = useRef(0)
   const hintTimerRef = useRef(null)
+
+  const pacePool = useMemo(() => {
+    const list = []
+    for (const k of topic.keywords || []) list.push({ type: 'キーワード', text: readingOf(k) })
+    for (const e of topic.expressions || []) list.push({ type: 'フレーズ', text: e })
+    for (const q of topic.questions || []) list.push({ type: '質問', text: q })
+    return list
+  }, [topic])
+
+  const target = Math.max(1, Math.round(duration / 12))
 
   const modelText =
     topic.interviewId != null && overrides?.[topic.interviewId]
@@ -125,6 +137,12 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
   }, [phase, running, duration, elapsed, finishSession])
 
   useEffect(() => {
+    if (phase !== 'run' || !running || !paceAuto || pacePool.length === 0) return
+    const id = setInterval(() => setPaceIdx((i) => (i + 1) % pacePool.length), 8000)
+    return () => clearInterval(id)
+  }, [phase, running, paceAuto, pacePool.length])
+
+  useEffect(() => {
     if (phase !== 'count') return
     if (countdown <= 0) {
       setPhase('run')
@@ -174,6 +192,8 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
     setElapsed(0)
     setSentences(0)
     setResult(null)
+    setPaceIdx(0)
+    setPaceAuto(true)
     setPhase('prep')
   }
 
@@ -272,8 +292,12 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
           <div className="state">
             {phase === 'done'
               ? 'お疲れ様！🎉'
-              : running
-                ? '話し続けよう！'
+              : phase === 'run'
+                ? running
+                  ? '話し続けよう！'
+                  : elapsed > 0
+                    ? '一時停止中'
+                    : 'スタート！'
                 : '準備はいい？'}
           </div>
         </div>
@@ -478,6 +502,14 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
           </div>
         </div>
 
+        <details className="done-review">
+          <summary>📖 回顾范文 · 影子跟读</summary>
+          <div className="done-review-body">
+            <p className="model-text">{modelText}</p>
+            <SpeechPlayer text={modelText} lang={lang} />
+          </div>
+        </details>
+
         <div className="next-row">
           <button className="btn btn-primary" onClick={startCountdown}>
             🔁 もう一度
@@ -507,6 +539,41 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
           </span>
           <span>{topic.titleZh}</span>
         </div>
+
+        {pacePool.length > 0 && (
+          <div className="pace-card">
+            <div className="pace-head">
+              <span className="pace-type">{pacePool[paceIdx % pacePool.length].type}</span>
+              <span className="pace-count">
+                {(paceIdx % pacePool.length) + 1}/{pacePool.length}
+              </span>
+              <button
+                className={`pace-auto ${paceAuto ? 'on' : ''}`}
+                onClick={() => setPaceAuto((v) => !v)}
+                title={paceAuto ? '暂停自动轮播' : '开启自动轮播'}
+              >
+                {paceAuto ? '⏸ 自動' : '▶ 自動'}
+              </button>
+            </div>
+            <div className="pace-text" key={paceIdx}>
+              {pacePool[paceIdx % pacePool.length].text}
+            </div>
+            <div className="pace-actions">
+              <button
+                className="pace-nav"
+                onClick={() => setPaceIdx((paceIdx - 1 + pacePool.length) % pacePool.length)}
+              >
+                ‹ 前
+              </button>
+              <button
+                className="pace-nav"
+                onClick={() => setPaceIdx((paceIdx + 1) % pacePool.length)}
+              >
+                次 ›
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="block">
           <div className="block-title">キーワード（点击发音）</div>
@@ -586,6 +653,15 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
             話した文数 · 句数
           </div>
           <div className="big">{sentences}</div>
+          <div className="target-row">
+            <span className="target-label">目標 {target} 句</span>
+            <div className="target-bar">
+              <div
+                className={`target-fill ${sentences >= target ? 'done' : ''}`}
+                style={{ width: `${Math.min(100, (sentences / target) * 100)}%` }}
+              />
+            </div>
+          </div>
           <button className="counter-btn" onClick={countSentence}>
             🗣 話した！ (＋1句) <span style={{ opacity: 0.7 }}>· Space</span>
           </button>
@@ -610,6 +686,9 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
         </button>
         <button className="btn mrb-btn" onClick={showHint}>
           💡
+        </button>
+        <button className="btn mrb-btn mrb-end" onClick={() => finishSession(true)} title="終了して記録">
+          終
         </button>
       </div>
     </div>
