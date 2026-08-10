@@ -53,6 +53,60 @@ function norm(s) {
   return out
 }
 
+function needlesFor(raw) {
+  return [norm(raw).toLowerCase(), ...(VARIANTS[raw] || []).map((v) => norm(v).toLowerCase())]
+}
+
+export function findSpan(text, rawQuery) {
+  const t = norm(text).toLowerCase()
+  let best = null
+  for (const n of needlesFor(rawQuery)) {
+    if (!n) continue
+    const idx = t.indexOf(n)
+    if (idx === -1) continue
+    if (best === null || n.length > best.n.length || (n.length === best.n.length && idx < best.idx)) {
+      best = { idx, n }
+    }
+  }
+  if (!best) return null
+  return { start: best.idx, end: best.idx + best.n.length }
+}
+
+function matchScore(s, secTitle, raw) {
+  const zh = norm(s.zh || '').toLowerCase()
+  const en = norm(s.en || '').toLowerCase()
+  const sub = norm(s.sub || '').toLowerCase()
+  const st = norm(secTitle || '').toLowerCase()
+  for (const n of needlesFor(raw)) {
+    if (!n) continue
+    if (en === n) return 0
+    if (zh === n) return 1
+    if (en.startsWith(n)) return 2
+    if (zh.startsWith(n)) return 3
+    if (en.includes(n)) return 4
+    if (zh.includes(n)) return 5
+    if (sub.includes(n)) return 6
+    if (st.includes(n)) return 7
+  }
+  return 99
+}
+
+export function searchSentences(sections, q) {
+  const raw = q.trim()
+  if (!raw) return []
+  const out = []
+  for (const sec of sections) {
+    const secTitle = sec.title || ''
+    for (const s of sec.sentences) {
+      const score = matchScore(s, secTitle, raw)
+      if (score === 99) continue
+      out.push({ zh: s.zh, en: s.en, sub: s.sub, secTitle, secId: sec.id, score })
+    }
+  }
+  out.sort((a, b) => a.score - b.score)
+  return out
+}
+
 export async function loadEnglishSentences() {
   if (cache) return cache
   const res = await fetch(import.meta.env.BASE_URL + 'life-english.json')
@@ -61,21 +115,3 @@ export async function loadEnglishSentences() {
   return cache
 }
 
-export function searchSentences(sections, q) {
-  const raw = q.trim()
-  if (!raw) return []
-  const needles = [norm(raw).toLowerCase(), ...(VARIANTS[raw] || []).map((v) => norm(v).toLowerCase())]
-  const out = []
-  for (const sec of sections) {
-    const secTitle = norm(sec.title || '').toLowerCase()
-    for (const s of sec.sentences) {
-      const zh = norm(s.zh || '').toLowerCase()
-      const en = norm(s.en || '').toLowerCase()
-      const sub = norm(s.sub || '').toLowerCase()
-      if (needles.some((n) => zh.includes(n) || en.includes(n) || sub.includes(n) || secTitle.includes(n))) {
-        out.push({ zh: s.zh, en: s.en, sub: s.sub, secTitle: sec.title, secId: sec.id })
-      }
-    }
-  }
-  return out
-}

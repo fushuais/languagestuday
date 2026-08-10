@@ -538,6 +538,68 @@ select:focus-visible {
   margin-top: 10px;
 }
 
+.search-wrap {
+  position: relative;
+}
+
+.search-wrap .search {
+  padding-right: 34px;
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.search-clear:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.search-more-btn {
+  display: block;
+  margin: 10px auto 0;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--accent-blue);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.search-more-btn:hover {
+  border-color: var(--accent-blue);
+  background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
+}
+
+.sentence-zh mark,
+.sentence-en mark,
+.topic-card h3 mark,
+.topic-card .kw mark {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -1878,8 +1940,12 @@ select:focus-visible {
   row-gap: 10px;
 }
 
-.global-search {
+.global-search-wrap {
   width: 180px;
+}
+
+.global-search {
+  width: 100%;
   margin-bottom: 0;
 }
 
@@ -1896,7 +1962,7 @@ select:focus-visible {
     grid-area: lang;
     justify-self: start;
   }
-  .global-search {
+  .global-search-wrap {
     grid-area: search;
     width: 100%;
     min-width: 0;

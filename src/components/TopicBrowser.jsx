@@ -2,7 +2,20 @@ import { useEffect, useState } from 'react'
 import { CATEGORIES, LEVELS, topicLevel } from '../data/topics.js'
 import { EN_CATEGORIES, EN_LEVELS, enTopicLevel } from '../data/english.js'
 import SpeechPlayer from './SpeechPlayer.jsx'
-import { loadEnglishSentences, searchSentences } from '../utils/sentences.js'
+import { loadEnglishSentences, searchSentences, findSpan } from '../utils/sentences.js'
+
+function Marked({ text, q }) {
+  if (!text || !q) return text
+  const span = findSpan(text, q)
+  if (!span) return text
+  return (
+    <>
+      {text.slice(0, span.start)}
+      <mark>{text.slice(span.start, span.end)}</mark>
+      {text.slice(span.end)}
+    </>
+  )
+}
 
 export default function TopicBrowser({
   allTopics,
@@ -19,6 +32,7 @@ export default function TopicBrowser({
   const [showLearned, setShowLearned] = useState('all')
   const [sent, setSent] = useState(null)
   const [sentErr, setSentErr] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   const isEn = lang === 'en'
   const CATS = isEn ? EN_CATEGORIES : CATEGORIES
   const LVLS = isEn ? EN_LEVELS : LEVELS
@@ -128,12 +142,19 @@ export default function TopicBrowser({
         </button>
       </div>
 
-      <input
-        className="search"
-        placeholder={isEn ? '🔍 検索：话题名 / 关键词（例：travel、movie）' : '検索：话题名 / 关键词（例：旅行、ラーメン）'}
-        value={query ?? ''}
-        onChange={(e) => onQueryChange?.(e.target.value)}
-      />
+      <div className="search-wrap">
+        <input
+          className="search"
+          placeholder={isEn ? '🔍 検索：话题名 / 关键词（例：travel、movie）' : '検索：话题名 / 关键词（例：旅行、ラーメン）'}
+          value={query ?? ''}
+          onChange={(e) => onQueryChange?.(e.target.value)}
+        />
+        {q && (
+          <button className="search-clear" onClick={() => onQueryChange?.('')} aria-label="清除搜索">
+            ✕
+          </button>
+        )}
+      </div>
 
       {q ? (
         <>
@@ -160,12 +181,16 @@ export default function TopicBrowser({
                           <em className={`level-badge lv-${level?.id}`}>{level?.short}</em>
                         </span>
                         <h3>
-                          {t.title}
-                          <small>{t.titleZh}</small>
+                          <Marked text={t.title} q={query} />
+                          <small>
+                            <Marked text={t.titleZh} q={query} />
+                          </small>
                         </h3>
                         <div className="kw">
                           {(t.keywords || []).slice(0, 4).map((k) => (
-                            <span key={k}>{k}</span>
+                            <span key={k}>
+                              <Marked text={k} q={query} />
+                            </span>
                           ))}
                         </div>
                       </button>
@@ -203,11 +228,15 @@ export default function TopicBrowser({
             <div className="search-results">
               <h3 className="search-res-group">句子匹配 · {sentResults.length}</h3>
               <div className="sentence-res-list">
-                {sentResults.slice(0, 40).map((s, i) => (
-                  <div key={i} className="sentence-row">
+                {(showAll ? sentResults : sentResults.slice(0, 40)).map((s, i) => (
+                  <div key={`${s.secId}-${i}`} className="sentence-row">
                     <div className="sentence-text">
-                      <span className="sentence-zh">{s.zh}</span>
-                      <span className="sentence-en">{s.en}</span>
+                      <span className="sentence-zh">
+                        <Marked text={s.zh} q={query} />
+                      </span>
+                      <span className="sentence-en">
+                        <Marked text={s.en} q={query} />
+                      </span>
                       {s.secTitle && <em className="sentence-sec-tag">{s.secTitle}</em>}
                     </div>
                     <SpeechPlayer mini text={s.en} lang={lang} />
@@ -215,7 +244,9 @@ export default function TopicBrowser({
                 ))}
               </div>
               {sentResults.length > 40 && (
-                <p className="search-more">仅显示前 40 条 · 共 {sentResults.length} 条匹配</p>
+                <button className="search-more-btn" onClick={() => setShowAll((v) => !v)}>
+                  {showAll ? '收起' : `显示全部 ${sentResults.length} 条`}
+                </button>
               )}
             </div>
           )}

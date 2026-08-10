@@ -238,13 +238,24 @@ export default function App() {
               English
             </button>
           </div>
-          <input
-            className="search global-search"
-            placeholder={isEn ? '🔍 検索 话题 / 关键词…' : '🔍 検索 话题 / 关键词…'}
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            onFocus={() => setView('topics')}
-          />
+          <div className="search-wrap global-search-wrap">
+            <input
+              className="search global-search"
+              placeholder="🔍 検索 话题 / 关键词 / 句子…"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              onFocus={() => setView('topics')}
+            />
+            {searchQuery && (
+              <button
+                className="search-clear"
+                onClick={() => setSearchQuery('')}
+                aria-label="清除搜索"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <button
             className="help-btn"
             onClick={() => setShowAbout(true)}
