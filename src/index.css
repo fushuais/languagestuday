@@ -2482,6 +2482,52 @@ select:focus-visible {
   word-break: break-all;
 }
 
+.about-feedback {
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.about-feedback-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.about-feedback-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 76px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.about-feedback-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-blue) 20%, transparent);
+}
+
+.about-feedback-btn {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.about-feedback-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 8px;
+  text-align: center;
+}
+
+
 .about-row a:hover {
   text-decoration: underline;
 }

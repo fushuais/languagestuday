@@ -1,6 +1,22 @@
+import { useState } from 'react'
+
 const PROJECT_URL = 'https://github.com/fushuais'
+const FEEDBACK_EMAIL = 'fushuai137829@gmail.com'
 
 export default function About({ onClose }) {
+  const [feedback, setFeedback] = useState('')
+
+  const sendFeedback = (e) => {
+    e.preventDefault()
+    const text = feedback.trim()
+    if (!text) return
+    const subject = encodeURIComponent('意見フィードバック / 意见反馈 - 日本語スピーキング')
+    const body = encodeURIComponent(
+      `${text}\n\n——\n装置: ${navigator.userAgent}\n画面: ${window.screen.width}×${window.screen.height}\n`,
+    )
+    window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`
+  }
+
   return (
     <div className="about-overlay" onClick={onClose}>
       <div className="about-card" onClick={(e) => e.stopPropagation()}>
@@ -30,7 +46,31 @@ export default function About({ onClose }) {
               GitHub · fushuais
             </a>
           </div>
+          <div className="about-row">
+            <span>反馈邮箱</span>
+            <a href={`mailto:${FEEDBACK_EMAIL}`}>{FEEDBACK_EMAIL}</a>
+          </div>
         </div>
+
+        <form className="about-feedback" onSubmit={sendFeedback}>
+          <div className="about-feedback-title">意见反馈 · ご意見</div>
+          <textarea
+            className="about-feedback-input"
+            rows="3"
+            maxLength="1000"
+            placeholder="想说的话：功能建议、bug、翻译修正… 点击发送后自动打开你的邮件应用"
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="btn btn-primary about-feedback-btn"
+            disabled={!feedback.trim()}
+          >
+            发送反馈
+          </button>
+          <p className="about-feedback-hint">收件人 {FEEDBACK_EMAIL} · 提交即打开邮件客户端</p>
+        </form>
 
         <button className="btn btn-primary about-close" onClick={onClose}>
           知道了
