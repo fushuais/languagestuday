@@ -3,14 +3,11 @@ import { EN_CATEGORIES, EN_TOPICS, EN_LEVELS, enTopicLevel } from './data/englis
 import { INTERVIEW, interviewToTopic } from './data/interview.js'
 import PracticeView from './components/PracticeView.jsx'
 import TopicBrowser from './components/TopicBrowser.jsx'
-import SentenceBank from './components/SentenceBank.jsx'
 import SegmentedTabs from './components/SegmentedTabs.jsx'
 import InterviewView from './components/InterviewView.jsx'
-import HistoryView from './components/HistoryView.jsx'
 import Onboarding, { shouldOnboard } from './components/Onboarding.jsx'
-import About from './components/About.jsx'
-import Settings from './components/Settings.jsx'
 import EdgeStatusBadge from './components/EdgeStatusBadge.jsx'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   loadHistory,
   saveHistory,
@@ -27,8 +24,12 @@ import {
 } from './utils/storage.js'
 import { loadProfile, saveProfile } from './utils/profile.js'
 import { setSpeechLang, stopSpeech } from './utils/speech.js'
-import { tap, success } from './utils/haptics.js'
-import { useEffect, useState } from 'react'
+import { tap } from './utils/haptics.js'
+
+const SentenceBank = lazy(() => import('./components/SentenceBank.jsx'))
+const HistoryView = lazy(() => import('./components/HistoryView.jsx'))
+const Settings = lazy(() => import('./components/Settings.jsx'))
+const About = lazy(() => import('./components/About.jsx'))
 
 const JA_TOPICS = [...TOPICS, ...INTERVIEW.map(interviewToTopic)]
 const ALL_BY_ID = Object.fromEntries([...JA_TOPICS, ...EN_TOPICS].map((t) => [t.id, t]))
@@ -324,25 +325,33 @@ export default function App() {
           />
         )}
 
-        {view === 'sentences' && <SentenceBank lang={lang} />}
+        {view === 'sentences' && (
+          <Suspense fallback={<div className="view-fallback" />}>
+            <SentenceBank lang={lang} />
+          </Suspense>
+        )}
 
         {view === 'history' && (
-          <HistoryView
-            records={history}
-            topicsById={ALL_BY_ID}
-            goal={goal}
-            onSetGoal={handleSetGoal}
-            allTopics={topicList}
-            onClear={clearHistory}
-            onReplay={pickTopic}
-          />
+          <Suspense fallback={<div className="view-fallback" />}>
+            <HistoryView
+              records={history}
+              topicsById={ALL_BY_ID}
+              goal={goal}
+              onSetGoal={handleSetGoal}
+              allTopics={topicList}
+              onClear={clearHistory}
+              onReplay={pickTopic}
+            />
+          </Suspense>
         )}
 
       </div>
 
       {showOnboard && <Onboarding onClose={() => setShowOnboard(false)} />}
-      {showAbout && <About onClose={() => setShowAbout(false)} />}
-      {showSettings && <Settings lang={lang} onClose={() => setShowSettings(false)} />}
+      <Suspense fallback={null}>
+        {showAbout && <About onClose={() => setShowAbout(false)} />}
+        {showSettings && <Settings lang={lang} onClose={() => setShowSettings(false)} />}
+      </Suspense>
     </div>
   )
 }

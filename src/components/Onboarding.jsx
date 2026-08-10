@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 const KEY = 'nihongo-onboarded-v1'
 
-export function shouldOnboard(hasRecords) {
+export function shouldOnboard(_hasRecords) {
   if (typeof window === 'undefined') return false
   try {
     return !localStorage.getItem(KEY)

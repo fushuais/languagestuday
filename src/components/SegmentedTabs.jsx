@@ -31,7 +31,7 @@ export default function SegmentedTabs({ items, active, onChange }) {
     update()
     const raf = requestAnimationFrame(() => setReady(true))
     return () => cancelAnimationFrame(raf)
-  }, [active, items])
+  }, [active, items]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <nav className="tabs" ref={listRef} role="tablist" aria-label="view navigation">

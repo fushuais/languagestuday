@@ -58,6 +58,33 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
     setSpeakingTag(null)
   }, [])
 
+  const finishSession = useCallback(
+    (early) => {
+      clearTimeout(hintTimerRef.current)
+      stopAll()
+      setRunning(false)
+      playFinish()
+      hapticSuccess()
+      const comp = scoreSession({ sentences, duration, elapsed, finished: !early })
+      setResult(comp)
+      onAddRecord({
+        id: Date.now(),
+        topicId: topic.id,
+        topicTitle: topic.title,
+        topicZh: topic.titleZh,
+        category: topic.category,
+        duration,
+        sentences,
+        score: comp.score,
+        grade: comp.grade,
+        finished: !early,
+        date: new Date().toISOString(),
+      })
+      setPhase('done')
+    },
+    [sentences, duration, elapsed, topic, onAddRecord, stopAll],
+  )
+
   useEffect(() => () => clearTimeout(hintTimerRef.current), [])
 
   useEffect(() => () => cancelSequence(), [])
@@ -95,7 +122,7 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
       }
     }, 250)
     return () => clearInterval(id)
-  }, [phase, running, duration, elapsed])
+  }, [phase, running, duration, elapsed, finishSession])
 
   useEffect(() => {
     if (phase !== 'count') return
@@ -148,30 +175,6 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
     setSentences(0)
     setResult(null)
     setPhase('prep')
-  }
-
-  const finishSession = (early) => {
-    clearTimeout(hintTimerRef.current)
-    stopAll()
-    setRunning(false)
-    playFinish()
-    hapticSuccess()
-    const comp = scoreSession({ sentences, duration, elapsed, finished: !early })
-    setResult(comp)
-    onAddRecord({
-      id: Date.now(),
-      topicId: topic.id,
-      topicTitle: topic.title,
-      topicZh: topic.titleZh,
-      category: topic.category,
-      duration,
-      sentences,
-      score: comp.score,
-      grade: comp.grade,
-      finished: !early,
-      date: new Date().toISOString(),
-    })
-    setPhase('done')
   }
 
   const showHint = () => {

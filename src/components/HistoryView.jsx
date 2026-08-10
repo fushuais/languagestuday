@@ -25,9 +25,6 @@ export default function HistoryView({
     records.reduce((sum, r) => sum + r.duration, 0) / 60,
   )
   const totalSentences = records.reduce((sum, r) => sum + r.sentences, 0)
-  const avgScore = totalSessions
-    ? Math.round(records.reduce((sum, r) => sum + r.score, 0) / totalSessions)
-    : 0
 
   const rec = recommendTopic(records, allTopics)
   const goalPct = Math.min(100, Math.round((stats.todayMinutes / goal) * 100))
