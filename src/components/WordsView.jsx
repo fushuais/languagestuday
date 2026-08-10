@@ -5,6 +5,21 @@ import { tap, success } from '../utils/haptics.js'
 
 const KEY = 'nihongo-words-v1'
 
+const LEVEL_FILTERS = [
+  { id: 'all', label: '全部' },
+  { id: 'basic', label: '初級 N5·N4' },
+  { id: 'N3', label: 'N3' },
+  { id: 'N2', label: 'N2' },
+]
+
+const LEVEL_ORDER = ['N5', 'N4', 'N3', 'N2']
+
+function filterWords(words, level) {
+  if (level === 'all') return words
+  if (level === 'basic') return words.filter((w) => w.level === 'N5' || w.level === 'N4')
+  return words.filter((w) => w.level === level)
+}
+
 function loadProgress() {
   try {
     return JSON.parse(localStorage.getItem(KEY)) || {}
@@ -30,9 +45,12 @@ function shuffle(arr) {
   return a
 }
 
+const LevelBadge = ({ level }) => <span className={`word-level lv-${level}`}>{level}</span>
+
 export default function WordsView() {
   const [sceneId, setSceneId] = useState(null)
   const [mode, setMode] = useState('list')
+  const [level, setLevel] = useState('all')
   const [learned, setLearned] = useState(loadProgress)
   const [cardIdx, setCardIdx] = useState(0)
   const [flipped, setFlipped] = useState(false)
@@ -40,16 +58,30 @@ export default function WordsView() {
 
   const allWords = useMemo(() => WORD_SCENES.flatMap((s) => s.words), [])
   const scene = WORD_SCENES.find((s) => s.id === sceneId)
-
+  const filtered = useMemo(
+    () => (scene ? filterWords(scene.words, level) : []),
+    [scene, level],
+  )
   const learnedInScene = scene ? Object.keys(learned[scene.id] || {}).filter((k) => learned[scene.id][k]).length : 0
 
   const openScene = (s) => {
     tap()
     setSceneId(s.id)
     setMode('list')
+    setLevel('all')
     setCardIdx(0)
     setFlipped(false)
     setQuiz(null)
+  }
+
+  const changeLevel = (lv) => {
+    if (lv === level) return
+    tap()
+    setLevel(lv)
+    setCardIdx(0)
+    setFlipped(false)
+    if (mode === 'quiz') startQuiz(lv)
+    else setQuiz(null)
   }
 
   const toggleLearned = (w) => {
@@ -61,10 +93,14 @@ export default function WordsView() {
     tap()
   }
 
-  const startQuiz = () => {
+  const startQuiz = (lv = level) => {
     if (!scene) return
     tap()
-    const words = shuffle(scene.words)
+    const words = shuffle(filterWords(scene.words, lv))
+    if (!words.length) {
+      setQuiz(null)
+      return
+    }
     const items = words.map((w) => {
       const distractors = shuffle(allWords.filter((x) => x.zh !== w.zh).map((x) => x.zh)).slice(0, 3)
       return { w, options: shuffle([w.zh, ...distractors]) }
@@ -100,8 +136,8 @@ export default function WordsView() {
 
   const nextCard = (known) => {
     if (!scene) return
-    if (known) toggleLearned(scene.words[cardIdx])
-    if (cardIdx + 1 >= scene.words.length) {
+    if (known) toggleLearned(filtered[cardIdx])
+    if (cardIdx + 1 >= filtered.length) {
       setMode('list')
       setCardIdx(0)
       setFlipped(false)
@@ -112,17 +148,22 @@ export default function WordsView() {
   }
 
   if (!scene) {
+    const totalWords = allWords.length
     return (
       <section>
         <h2 className="section-title">単語帳 · 按场景记单词</h2>
         <p className="section-sub">
-          共 {WORD_SCENES.length} 个生活场景，每个约 18 个高频词。按场景记忆，边听边练。
+          共 {WORD_SCENES.length} 个生活场景 · {totalWords} 词，参照 N4/N3/N2 考前对策目录分类，覆盖 N5–N2 常用词汇。
         </p>
         <div className="word-scene-grid">
           {WORD_SCENES.map((s) => {
             const l = learned[s.id] || {}
             const count = s.words.filter((w) => l[w.ja]).length
             const pct = Math.round((count / s.words.length) * 100)
+            const chips = LEVEL_ORDER.map((lv) => ({
+              lv,
+              n: s.words.filter((w) => w.level === lv).length,
+            }))
             return (
               <button key={s.id} className="word-scene-card" onClick={() => openScene(s)}>
                 <span className="ws-emoji">{s.emoji}</span>
@@ -132,6 +173,13 @@ export default function WordsView() {
                 </span>
                 <span className="ws-count">
                   {count}/{s.words.length}
+                </span>
+                <span className="ws-levels">
+                  {chips.map((c) => (
+                    <span key={c.lv} className={`word-level lv-${c.lv}`}>
+                      {c.lv} {c.n}
+                    </span>
+                  ))}
                 </span>
                 <span className="ws-bar">
                   <span style={{ width: `${pct}%` }} />
@@ -158,6 +206,21 @@ export default function WordsView() {
         </h2>
       </div>
 
+      <div className="word-level-filter" role="tablist" aria-label="级别筛选">
+        {LEVEL_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            role="tab"
+            aria-selected={level === f.id}
+            className={level === f.id ? 'active' : ''}
+            onClick={() => changeLevel(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+        <span className="wl-count">当前 {filtered.length} 词</span>
+      </div>
+
       <div className="word-mode-tabs" role="tablist" aria-label="学习模式">
         {[
           { id: 'list', label: '📚 単語一覧' },
@@ -172,6 +235,10 @@ export default function WordsView() {
             onClick={() => {
               setMode(m.id)
               if (m.id === 'quiz') startQuiz()
+              if (m.id === 'cards') {
+                setCardIdx(0)
+                setFlipped(false)
+              }
             }}
           >
             {m.label}
@@ -181,7 +248,7 @@ export default function WordsView() {
 
       {mode === 'list' && (
         <div className="word-list">
-          {scene.words.map((w) => {
+          {filtered.map((w) => {
             const done = !!learned[scene.id]?.[w.ja]
             return (
               <div key={w.ja} className={`word-row ${done ? 'learned' : ''}`}>
@@ -189,6 +256,7 @@ export default function WordsView() {
                   <span className="word-ja">{w.ja}</span>
                   <span className="word-kana">{w.kana}</span>
                 </div>
+                <LevelBadge level={w.level} />
                 <span className="word-zh">{w.zh}</span>
                 <SpeechPlayer mini text={w.ja} lang="ja" />
                 <button
@@ -206,31 +274,42 @@ export default function WordsView() {
 
       {mode === 'cards' && (
         <div className="card-study">
-          <div className="flashcard" onClick={() => setFlipped((v) => !v)}>
-            <div className={`fc-inner ${flipped ? 'flipped' : ''}`}>
-              <div className="fc-face fc-front">
-                <div className="fc-ja">{scene.words[cardIdx].ja}</div>
-                <div className="fc-kana">{scene.words[cardIdx].kana}</div>
-                <SpeechPlayer mini text={scene.words[cardIdx].ja} lang="ja" />
-                <div className="fc-hint">点击卡片看中文</div>
+          {filtered.length ? (
+            <>
+              <div className="flashcard" onClick={() => setFlipped((v) => !v)}>
+                <div className={`fc-inner ${flipped ? 'flipped' : ''}`}>
+                  <div className="fc-face fc-front">
+                    <div className="fc-ja">{filtered[cardIdx].ja}</div>
+                    <div className="fc-kana">{filtered[cardIdx].kana}</div>
+                    <SpeechPlayer mini text={filtered[cardIdx].ja} lang="ja" />
+                    <span className={`word-level lv-${filtered[cardIdx].level}`}>
+                      {filtered[cardIdx].level}
+                    </span>
+                    <div className="fc-hint">点击卡片看中文</div>
+                  </div>
+                  <div className="fc-face fc-back">
+                    <div className="fc-zh">{filtered[cardIdx].zh}</div>
+                    <div className="fc-hint">点击卡片回正面</div>
+                  </div>
+                </div>
               </div>
-              <div className="fc-face fc-back">
-                <div className="fc-zh">{scene.words[cardIdx].zh}</div>
-                <div className="fc-hint">点击卡片回正面</div>
+              <div className="fc-actions">
+                <button className="btn btn-ghost" onClick={() => nextCard(false)}>
+                  😥 まだ
+                </button>
+                <button className="btn btn-primary" onClick={() => nextCard(true)}>
+                  ✅ 覚えた
+                </button>
               </div>
+              <div className="fc-progress">
+                {cardIdx + 1} / {filtered.length}
+              </div>
+            </>
+          ) : (
+            <div className="quiz-result">
+              <p>当前级别没有单词，换个筛选试试。</p>
             </div>
-          </div>
-          <div className="fc-actions">
-            <button className="btn btn-ghost" onClick={() => nextCard(false)}>
-              😥 まだ
-            </button>
-            <button className="btn btn-primary" onClick={() => nextCard(true)}>
-              ✅ 覚えた
-            </button>
-          </div>
-          <div className="fc-progress">
-            {cardIdx + 1} / {scene.words.length}
-          </div>
+          )}
         </div>
       )}
 
@@ -239,7 +318,7 @@ export default function WordsView() {
           {quiz.done ? (
             <div className="quiz-result">
               <div className="quiz-score-big">
-                {Math.round((quiz.score / quiz.items.length) * 100)}%
+                {quiz.items.length ? Math.round((quiz.score / quiz.items.length) * 100) : 0}%
               </div>
               <p>
                 正解 {quiz.score} / {quiz.items.length}
