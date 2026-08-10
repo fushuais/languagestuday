@@ -48,7 +48,7 @@ export default function About({ onClose }) {
           </div>
           <div className="about-row">
             <span>反馈邮箱</span>
-            <a href={`mailto:${FEEDBACK_EMAIL}`}>{FEEDBACK_EMAIL}</a>
+            <a href={`mailto:${FEEDBACK_EMAIL}`}>发送邮件</a>
           </div>
         </div>
 
@@ -69,7 +69,7 @@ export default function About({ onClose }) {
           >
             发送反馈
           </button>
-          <p className="about-feedback-hint">收件人 {FEEDBACK_EMAIL} · 提交即打开邮件客户端</p>
+          <p className="about-feedback-hint">提交后自动打开你的邮件应用</p>
         </form>
 
         <button className="btn btn-primary about-close" onClick={onClose}>
