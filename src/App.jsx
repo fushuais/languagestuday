@@ -30,6 +30,7 @@ const SentenceBank = lazy(() => import('./components/SentenceBank.jsx'))
 const HistoryView = lazy(() => import('./components/HistoryView.jsx'))
 const Settings = lazy(() => import('./components/Settings.jsx'))
 const About = lazy(() => import('./components/About.jsx'))
+const WordsView = lazy(() => import('./components/WordsView.jsx'))
 
 const JA_TOPICS = [...TOPICS, ...INTERVIEW.map(interviewToTopic)]
 const ALL_BY_ID = Object.fromEntries([...JA_TOPICS, ...EN_TOPICS].map((t) => [t.id, t]))
@@ -37,6 +38,7 @@ const ALL_BY_ID = Object.fromEntries([...JA_TOPICS, ...EN_TOPICS].map((t) => [t.
 const VIEWS_JA = [
   { id: 'practice', label: '連続練習' },
   { id: 'interview', label: '面接対策' },
+  { id: 'words', label: '単語帳' },
   { id: 'topics', label: '話題カード' },
   { id: 'history', label: '練習記録' },
 ]
@@ -137,6 +139,7 @@ export default function App() {
         setTopic(next === 'en' ? EN_TOPICS[0] : JA_TOPICS[0])
         setSearchQuery('')
         if (next === 'en' && view === 'interview') setView('practice')
+        if (next === 'en' && view === 'words') setView('practice')
         if (next === 'ja' && view === 'sentences') setView('practice')
         setSwitching(false)
       }, 300)
@@ -321,6 +324,12 @@ export default function App() {
             onSetOverride={handleSetOverride}
             onStart={startInterview}
           />
+        )}
+
+        {view === 'words' && (
+          <Suspense fallback={<div className="view-fallback" />}>
+            <WordsView />
+          </Suspense>
         )}
 
         {view === 'topics' && (
