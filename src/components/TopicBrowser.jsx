@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CATEGORIES, LEVELS, topicLevel } from '../data/topics.js'
 import { EN_CATEGORIES, EN_LEVELS, enTopicLevel } from '../data/english.js'
+import SpeechPlayer from './SpeechPlayer.jsx'
+import { loadEnglishSentences, searchSentences } from '../utils/sentences.js'
 
 export default function TopicBrowser({
   allTopics,
@@ -15,19 +17,37 @@ export default function TopicBrowser({
   const topics = allTopics ?? []
   const [cat, setCat] = useState('all')
   const [showLearned, setShowLearned] = useState('all')
+  const [sent, setSent] = useState(null)
+  const [sentErr, setSentErr] = useState(false)
   const isEn = lang === 'en'
   const CATS = isEn ? EN_CATEGORIES : CATEGORIES
   const LVLS = isEn ? EN_LEVELS : LEVELS
   const levelOf = isEn ? enTopicLevel : topicLevel
+  const q = (query ?? '').trim().toLowerCase()
+
+  useEffect(() => {
+    if (!q) {
+      setSent(null)
+      setSentErr(false)
+      return
+    }
+    let alive = true
+    loadEnglishSentences()
+      .then((d) => alive && setSent(d))
+      .catch(() => alive && setSentErr(true))
+    return () => {
+      alive = false
+    }
+  }, [q])
+
+  const sentResults = sent ? searchSentences(sent, query) : []
 
   const filtered = topics.filter((t) => {
-    const q = (query ?? '').trim().toLowerCase()
     const isLevel = LVLS.some((l) => l.id === cat)
-    const okCat =
-      cat === 'all'
-        ? q
-          ? true
-          : t.category !== 'interview'
+    const okCat = q
+      ? true
+      : cat === 'all'
+        ? t.category !== 'interview'
         : isLevel
           ? levelOf(t.category) === cat
           : t.category === cat
@@ -115,7 +135,100 @@ export default function TopicBrowser({
         onChange={(e) => onQueryChange?.(e.target.value)}
       />
 
-      {filtered.length === 0 ? (
+      {q ? (
+        <>
+          {filtered.length > 0 && (
+            <div className="search-results">
+              <h3 className="search-res-group">话题匹配 · {filtered.length}</h3>
+              <div className="grid">
+                {filtered.map((t) => {
+                  const st = states?.[t.id]
+                  const level = LVLS.find((l) => l.id === levelOf(t.category))
+                  return (
+                    <div key={t.id} className={`topic-card-wrap ${t.id === currentId ? 'active' : ''}`}>
+                      <div className="topic-card-marks">
+                        {st?.mastered && <span className="mark mastered">✅</span>}
+                        {st?.fav && <span className="mark fav">⭐</span>}
+                      </div>
+                      <button
+                        className={`topic-card ${t.id === currentId ? 'topic-active' : ''}`}
+                        onClick={() => onPick(t)}
+                      >
+                        <span className="emoji">{t.emoji}</span>
+                        <span className="cat">
+                          {CATS.find((c) => c.id === t.category)?.label ?? ''}
+                          <em className={`level-badge lv-${level?.id}`}>{level?.short}</em>
+                        </span>
+                        <h3>
+                          {t.title}
+                          <small>{t.titleZh}</small>
+                        </h3>
+                        <div className="kw">
+                          {(t.keywords || []).slice(0, 4).map((k) => (
+                            <span key={k}>{k}</span>
+                          ))}
+                        </div>
+                      </button>
+                      <div className="topic-card-actions">
+                        <button
+                          className={`mini-mark ${st?.fav ? 'on' : ''}`}
+                          onClick={() => onToggleState(t.id, 'fav')}
+                          title="收藏"
+                        >
+                          ⭐
+                        </button>
+                        <button
+                          className={`mini-mark ${st?.mastered ? 'on' : ''}`}
+                          onClick={() => onToggleState(t.id, 'mastered')}
+                          title="标记已掌握"
+                        >
+                          ✅
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {!sent && !sentErr && q && <div className="skeleton-list" aria-label="搜索句子中">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton skeleton-row" />)}</div>}
+          {sentErr && (
+            <div className="empty">
+              <div className="icon">⚠️</div>
+              <p>句子数据载入失败，请检查网络后重试。</p>
+            </div>
+          )}
+          {sentResults.length > 0 && (
+            <div className="search-results">
+              <h3 className="search-res-group">句子匹配 · {sentResults.length}</h3>
+              <div className="sentence-res-list">
+                {sentResults.slice(0, 40).map((s, i) => (
+                  <div key={i} className="sentence-row">
+                    <div className="sentence-text">
+                      <span className="sentence-zh">{s.zh}</span>
+                      <span className="sentence-en">{s.en}</span>
+                      {s.secTitle && <em className="sentence-sec-tag">{s.secTitle}</em>}
+                    </div>
+                    <SpeechPlayer mini text={s.en} lang={lang} />
+                  </div>
+                ))}
+              </div>
+              {sentResults.length > 40 && (
+                <p className="search-more">仅显示前 40 条 · 共 {sentResults.length} 条匹配</p>
+              )}
+            </div>
+          )}
+
+          {filtered.length === 0 && sentResults.length === 0 && !sent && !sentErr && null}
+          {filtered.length === 0 && sentResults.length === 0 && (sentErr || sent) && (
+            <div className="empty">
+              <div className="icon">🔍</div>
+              <p>没有找到「{query}」相关的内容，换个关键词试试吧。</p>
+            </div>
+          )}
+        </>
+      ) : filtered.length === 0 ? (
         <div className="empty">
           <div className="icon">🔍</div>
           <p>没有找到相关话题，换个关键词试试吧。</p>
