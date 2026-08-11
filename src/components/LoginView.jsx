@@ -55,6 +55,7 @@ export default function LoginView({ onClose }) {
   return (
     <div className="login-overlay" onClick={onClose}>
       <div className="settings-card login-card" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-handle" aria-hidden="true" />
         <div className="settings-head">
           <div className="settings-title">账号 · 云同步</div>
           <button className="settings-close" onClick={onClose} aria-label="关闭">

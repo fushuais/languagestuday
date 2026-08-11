@@ -618,6 +618,7 @@ export default function App() {
           onClick={closeMenu}
         >
           <div className="menu-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-handle" aria-hidden="true" />
             <div className="menu-head">
               <div className="settings-title">菜单</div>
               <button className="settings-close" onClick={closeMenu} aria-label="关闭菜单">

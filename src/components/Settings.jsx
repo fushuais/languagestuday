@@ -74,6 +74,7 @@ export default function Settings({ lang = 'ja', onClose }) {
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-card" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-handle" aria-hidden="true" />
         <div className="settings-head">
           <div className="settings-title">设置 · 設定</div>
           <button className="settings-close" onClick={onClose} aria-label="关闭设置">

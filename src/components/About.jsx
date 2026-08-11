@@ -20,6 +20,7 @@ export default function About({ onClose }) {
   return (
     <div className="about-overlay" onClick={onClose}>
       <div className="about-card" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-handle" aria-hidden="true" />
         <div className="about-icon">
           <img className="torii" src={import.meta.env.BASE_URL + 'torii.svg'} alt="" />
         </div>
