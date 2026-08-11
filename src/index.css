@@ -3814,4 +3814,141 @@ select:focus-visible {
   }
 }
 
+/* ---------- 单词库入口与全词库 ---------- */
+.word-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.word-entry-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 18px;
+  background: linear-gradient(155deg, var(--card), color-mix(in srgb, var(--card) 60%, transparent));
+  border: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.3s var(--spring), border-color 0.2s var(--ease), box-shadow 0.3s var(--spring);
+}
+
+.word-entry-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-2);
+}
+
+.word-entry-card:active {
+  transform: scale(0.97);
+}
+
+.we-emoji {
+  font-size: 34px;
+}
+
+.we-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.we-title small {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.we-count {
+  font-size: 13px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.word-source {
+  margin-top: 18px;
+  font-size: 11px;
+  color: var(--text-faint);
+  opacity: 0.85;
+}
+
+.word-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.word-search input {
+  flex: 1;
+  padding: 11px 44px 11px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.word-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.word-search input::placeholder {
+  color: var(--text-faint);
+}
+
+.word-search .mini-mark {
+  position: absolute;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+}
+
+.wl-bank-count {
+  margin-left: 5px;
+  font-size: 10px;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.word-hint {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.fc-ex {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.fc-ex-ja {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fc-ex-zh {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
 
