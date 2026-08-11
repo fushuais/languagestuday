@@ -1,34 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SpeechPlayer from './SpeechPlayer.jsx'
 import ReadingView from './ReadingView.jsx'
-import {
-  loadScenes,
-  loadLevel,
-  loadChapters,
-  masteredAnywhere,
-  levelInScene,
-  maxLevelAnywhere,
-  MASTERY_LEVEL,
-} from '../utils/vocab.js'
+import GrammarView from './GrammarView.jsx'
+import { loadLevel, loadChapters, masteredAnywhere, maxLevelAnywhere } from '../utils/vocab.js'
 import { tap, success } from '../utils/haptics.js'
 
 const LEVELS = ['N5', 'N4', 'N3', 'N2']
 const LIB_TOTAL = { N5: 794, N4: 750, N3: 1796, N2: 3192 }
 
-const LEVEL_FILTERS = [
-  { id: 'all', label: '全部' },
-  { id: 'basic', label: '初級 N5·N4' },
-  { id: 'N3', label: 'N3' },
-  { id: 'N2', label: 'N2' },
-]
-
 const LV_LABELS = ['未学', '认识', '熟悉', '已掌握']
-
-function filterWords(words, level) {
-  if (level === 'all') return words
-  if (level === 'basic') return words.filter((w) => w.level === 'N5' || w.level === 'N4')
-  return words.filter((w) => w.level === level)
-}
 
 function shuffle(arr) {
   const a = [...arr]
@@ -69,62 +49,29 @@ const SentenceBox = ({ w }) =>
   ) : null
 
 export default function WordsView({ learned, onBumpWord }) {
-  const [scenes, setScenes] = useState(null)
   const [view, setView] = useState('home')
-  const [lastLearned, setLastLearned] = useState(null)
-
-  useEffect(() => {
-    let alive = true
-    loadScenes()
-      .then((d) => alive && setScenes(d))
-      .catch(() => alive && setScenes([]))
-    return () => {
-      alive = false
-    }
-  }, [])
-
-  const markLearned = (set, theme, ja, delta = 1) => {
-    onBumpWord(theme, ja, delta)
-    setLastLearned({ theme, ja })
-  }
 
   const go = (v) => {
     tap()
     setView(v)
   }
 
-  if (!scenes) {
-    return (
-      <section>
-        <h2 className="section-title">単語帳</h2>
-        <p className="section-sub">加载词库中…</p>
-      </section>
-    )
-  }
-
   if (view === 'home') {
-    const totalScene = scenes.reduce((n, s) => n + s.words.length, 0)
     const libTotal = LEVELS.reduce((n, l) => n + LIB_TOTAL[l], 0)
-    const sceneMastered = scenes.reduce(
-      (n, s) => n + Object.keys(learned[s.id] || {}).filter((k) => levelInScene(learned, s.id, k) >= MASTERY_LEVEL).length,
-      0,
-    )
     return (
       <section>
         <h2 className="section-title">単語・読解</h2>
         <p className="section-sub">
-          海量 JLPT 词库（N5–N2）按级别全量收录，可场景精选或全词库浏览复习；附 N4–N2 阅读与考试作文模板。
+          海量 JLPT 词库（N5–N2）按级别全量收录，可分等级学习文法、全词库浏览复习；附 N4–N2 阅读与考试作文模板。
         </p>
         <div className="word-entry-grid">
-          <button className="word-entry-card" onClick={() => go('scenes')}>
-            <span className="we-emoji">🗂️</span>
+          <button className="word-entry-card" onClick={() => go('grammar')}>
+            <span className="we-emoji">📐</span>
             <span className="we-title">
-              场景精选
-              <small>生活场景分类，适合日常积累</small>
+              文法
+              <small>N4–N2 分级核心语法 · 多例句详解</small>
             </span>
-            <span className="we-count">
-              {sceneMastered}/{totalScene} 已掌握
-            </span>
+            <span className="we-count">语法点</span>
           </button>
           <button className="word-entry-card" onClick={() => go('library')}>
             <span className="we-emoji">📖</span>
@@ -154,365 +101,7 @@ export default function WordsView({ learned, onBumpWord }) {
 
   if (view === 'reading') return <ReadingView />
 
-  return (
-    <SceneArea
-      scenes={scenes}
-      learned={learned}
-      markLearned={markLearned}
-      goHome={() => go('home')}
-      lastLearned={lastLearned}
-    />
-  )
-}
-function SceneArea({ scenes, learned, markLearned, goHome }) {
-  const [sceneId, setSceneId] = useState(null)
-  const [mode, setMode] = useState('list')
-  const [level, setLevel] = useState('all')
-  const [cardIdx, setCardIdx] = useState(0)
-  const [flipped, setFlipped] = useState(false)
-  const [quiz, setQuiz] = useState(null)
-
-  const allWords = useMemo(() => scenes.flatMap((s) => s.words), [scenes])
-  const scene = scenes.find((s) => s.id === sceneId)
-  const filtered = useMemo(
-    () => (scene ? filterWords(scene.words, level) : []),
-    [scene, level],
-  )
-  const learnedInScene = scene
-    ? scene.words.filter((w) => levelInScene(learned, scene.id, w.ja) >= MASTERY_LEVEL).length
-    : 0
-
-  const openScene = (s) => {
-    tap()
-    setSceneId(s.id)
-    setMode('list')
-    setLevel('all')
-    setCardIdx(0)
-    setFlipped(false)
-    setQuiz(null)
-  }
-
-  const changeLevel = (lv) => {
-    if (lv === level) return
-    tap()
-    setLevel(lv)
-    setCardIdx(0)
-    setFlipped(false)
-    if (mode === 'quiz') startQuiz(lv)
-    else setQuiz(null)
-  }
-
-  const toggleLearned = (w) => {
-    if (!scene) return
-    tap()
-    const cur = levelInScene(learned, scene.id, w.ja)
-    markLearned(learned, scene.id, w.ja, cur >= MASTERY_LEVEL ? -1 : 1)
-  }
-
-  const startQuiz = (lv = level) => {
-    if (!scene) return
-    tap()
-    const words = shuffle(filterWords(scene.words, lv))
-    if (!words.length) {
-      setQuiz(null)
-      return
-    }
-    const items = words.map((w) => {
-      const distractors = shuffle(allWords.filter((x) => x.zh !== w.zh).map((x) => x.zh)).slice(0, 3)
-      return { w, options: shuffle([w.zh, ...distractors]) }
-    })
-    setQuiz({ items, idx: 0, score: 0, answered: false, picked: null, done: false })
-  }
-
-  const answer = (i) => {
-    if (!quiz || quiz.answered) return
-    const item = quiz.items[quiz.idx]
-    const correct = item.options[i] === item.w.zh
-    const next = { ...quiz, answered: true, picked: i, score: quiz.score + (correct ? 1 : 0) }
-    setQuiz(next)
-    if (correct) {
-      success()
-      markLearned(learned, scene.id, item.w.ja, 1)
-    } else {
-      tap()
-      markLearned(learned, scene.id, item.w.ja, -1)
-    }
-  }
-
-  const nextQ = () => {
-    if (!quiz) return
-    tap()
-    if (quiz.idx + 1 >= quiz.items.length) setQuiz({ ...quiz, done: true })
-    else setQuiz({ ...quiz, idx: quiz.idx + 1, answered: false, picked: null })
-  }
-
-  const nextCard = (known) => {
-    if (!scene) return
-    if (known) markLearned(learned, scene.id, filtered[cardIdx].ja, 1)
-    else markLearned(learned, scene.id, filtered[cardIdx].ja, -1)
-    if (cardIdx + 1 >= filtered.length) {
-      setMode('list')
-      setCardIdx(0)
-      setFlipped(false)
-      return
-    }
-    setCardIdx((i) => i + 1)
-    setFlipped(false)
-  }
-
-  if (!scene) {
-    return (
-      <>
-        <div className="word-scene-head">
-          <button className="btn btn-ghost" onClick={goHome}>
-            ← 単語帳首页
-          </button>
-          <h2>🗂️ 场景精选</h2>
-        </div>
-        <p className="section-sub">
-          共 {scenes.length} 个生活场景 · {allWords.length} 词，参照 N4/N3/N2 考前对策目录分类，覆盖 N5–N2 常用词汇。
-        </p>
-        <div className="word-scene-grid">
-          {scenes.map((s) => {
-            const count = s.words.filter((w) => levelInScene(learned, s.id, w.ja) >= MASTERY_LEVEL).length
-            const pct = Math.round((count / s.words.length) * 100)
-            const chips = LEVELS.map((lv) => ({
-              lv,
-              n: s.words.filter((w) => w.level === lv).length,
-            }))
-            return (
-              <button key={s.id} className="word-scene-card" onClick={() => openScene(s)}>
-                <span className="ws-emoji">{s.emoji}</span>
-                <span className="ws-title">
-                  {s.title}
-                  <small>{s.zh}</small>
-                </span>
-                <span className="ws-count">
-                  {count}/{s.words.length}
-                </span>
-                <span className="ws-levels">
-                  {chips.map((c) => (
-                    <span key={c.lv} className={`word-level lv-${c.lv}`}>
-                      {c.lv} {c.n}
-                    </span>
-                  ))}
-                </span>
-                <span className="ws-bar">
-                  <span style={{ width: `${pct}%` }} />
-                </span>
-              </button>
-            )
-          })}
-        </div>
-        <p className="word-source">
-          词库来源：开源 JLPT 牌组 tcf245（eggrolls-JLPT10k v3.5）· CC BY-NC 4.0
-        </p>
-      </>
-    )
-  }
-
-  return (
-    <>
-      <div className="word-scene-head">
-        <button className="btn btn-ghost" onClick={() => setSceneId(null)}>
-          ← 场景列表
-        </button>
-        <h2>
-          {scene.emoji} {scene.title}
-          <small>
-            {scene.zh} · 已掌握 {learnedInScene}/{scene.words.length}
-          </small>
-        </h2>
-      </div>
-
-      <div className="word-level-filter" role="tablist" aria-label="级别筛选">
-        {LEVEL_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            role="tab"
-            aria-selected={level === f.id}
-            className={level === f.id ? 'active' : ''}
-            onClick={() => changeLevel(f.id)}
-          >
-            {f.label}
-          </button>
-        ))}
-        <span className="wl-count">当前 {filtered.length} 词</span>
-      </div>
-
-      <div className="word-mode-tabs" role="tablist" aria-label="学习模式">
-        {[
-          { id: 'list', label: '📚 単語一覧' },
-          { id: 'cards', label: '🃏 暗記カード' },
-          { id: 'quiz', label: '🎯 クイズ' },
-        ].map((m) => (
-          <button
-            key={m.id}
-            role="tab"
-            aria-selected={mode === m.id}
-            className={mode === m.id ? 'active' : ''}
-            onClick={() => {
-              setMode(m.id)
-              if (m.id === 'quiz') startQuiz()
-              if (m.id === 'cards') {
-                setCardIdx(0)
-                setFlipped(false)
-              }
-            }}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-
-      {mode === 'list' && (
-        <div className="word-list">
-          {filtered.map((w) => {
-            const lv = levelInScene(learned, scene.id, w.ja)
-            const done = lv >= MASTERY_LEVEL
-            return (
-              <div key={w.ja} className={`word-row ${done ? 'learned' : ''}`}>
-                <div className="word-main">
-                  <span className="word-ja">{w.ja}</span>
-                  {w.kana && <span className="word-kana">{w.kana}</span>}
-                </div>
-                <LevelBadge level={w.level} />
-                <span className="word-zh">{w.zh}</span>
-                <SentenceBox w={w} />
-                <MasteryDots level={lv} />
-                <WordSpeech text={w.ja} />
-                <button
-                  className={`mini-mark ${done ? 'on' : ''}`}
-                  onClick={() => toggleLearned(w)}
-                  title={done ? '取消已掌握（降为熟悉）' : '标记掌握（需连续答对3次）'}
-                >
-                  ✅
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {mode === 'cards' && (
-        <div className="card-study">
-          {filtered.length ? (
-            (() => {
-              const activeWord = filtered.length ? filtered[Math.min(cardIdx, filtered.length - 1)] : null
-              return activeWord ? (
-                <>
-                  <div className="flashcard" onClick={() => setFlipped((v) => !v)}>
-                    <div className={`fc-inner ${flipped ? 'flipped' : ''}`}>
-                      <div className="fc-face fc-front">
-                        <div className="fc-ja">{activeWord.ja}</div>
-                        {activeWord.kana && (
-                          <div className="fc-kana">{activeWord.kana}</div>
-                        )}
-                        <WordSpeech text={activeWord.ja} />
-                        <span className={`word-level lv-${activeWord.level}`}>
-                          {activeWord.level}
-                        </span>
-                        <div className="fc-hint">点击卡片看中文</div>
-                      </div>
-                      <div className="fc-face fc-back">
-                        <MasteryDots level={levelInScene(learned, scene.id, activeWord.ja)} />
-                        <div className="fc-zh">{activeWord.zh}</div>
-                        {activeWord.exJa && (
-                          <div className="fc-ex">
-                            <div className="fc-ex-ja">{activeWord.exJa}</div>
-                            <div className="fc-ex-zh">{activeWord.exZh}</div>
-                          </div>
-                        )}
-                        <div className="fc-hint">点击卡片回正面</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="fc-actions">
-                    <button className="btn btn-ghost" onClick={() => nextCard(false)}>
-                      😥 まだ
-                    </button>
-                    <button className="btn btn-primary" onClick={() => nextCard(true)}>
-                      ✅ 覚えた
-                    </button>
-                  </div>
-                  <div className="fc-progress">
-                    {Math.min(cardIdx, filtered.length - 1) + 1} / {filtered.length}
-                  </div>
-                </>
-              ) : (
-                <EmptyHint text="当前级别没有单词，换个筛选试试。" />
-              )
-            })()
-          ) : (
-            <EmptyHint text="当前级别没有单词，换个筛选试试。" />
-          )}
-        </div>
-      )}
-
-      {mode === 'quiz' && quiz && (
-        <div className="quiz">
-          {quiz.done ? (
-            <div className="quiz-result">
-              <div className="quiz-score-big">
-                {quiz.items.length ? Math.round((quiz.score / quiz.items.length) * 100) : 0}%
-              </div>
-              <p>
-                正解 {quiz.score} / {quiz.items.length}
-              </p>
-              <div className="next-row">
-                <button className="btn btn-primary" onClick={startQuiz}>
-                  🔁 もう一度
-                </button>
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setQuiz(null)
-                    setMode('list')
-                  }}
-                >
-                  回到单词表
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="quiz-q">
-                <div className="quiz-word">
-                  {quiz.items[quiz.idx].w.ja}
-                  {quiz.items[quiz.idx].w.kana && (
-                    <span className="quiz-kana">{quiz.items[quiz.idx].w.kana}</span>
-                  )}
-                  <WordSpeech text={quiz.items[quiz.idx].w.ja} />
-                </div>
-                <div className="quiz-options">
-                  {quiz.items[quiz.idx].options.map((o, i) => (
-                    <button
-                      key={o}
-                      className={`quiz-opt ${quiz.answered ? (o === quiz.items[quiz.idx].w.zh ? 'correct' : i === quiz.picked ? 'wrong' : '') : ''}`}
-                      onClick={() => answer(i)}
-                      disabled={quiz.answered}
-                    >
-                      {o}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="quiz-foot">
-                <span className="quiz-progress">
-                  {quiz.idx + 1} / {quiz.items.length} · 得分 {quiz.score}
-                </span>
-                {quiz.answered && (
-                  <button className="btn btn-primary" onClick={nextQ}>
-                    下一个 →
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </>
-  )
+  return <GrammarView />
 }
 
 function LibraryArea({ learned, onBumpWord, goHome }) {

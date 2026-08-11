@@ -4957,4 +4957,117 @@ select:focus-visible {
   line-height: 1.7;
 }
 
+.grammar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.grammar-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  backdrop-filter: var(--blur-bg);
+  -webkit-backdrop-filter: var(--blur-bg);
+  box-shadow: var(--shadow-1), inset 0 1px 0 var(--glass-highlight);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.grammar-card:hover {
+  border-color: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.grammar-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grammar-card-pattern {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.grammar-card-meaning {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.grammar-card-arrow {
+  color: var(--text-dim);
+  font-size: 18px;
+}
+
+.grammar-usage {
+  margin-top: 16px;
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.grammar-usage-ja {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text);
+}
+
+.grammar-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grammar-example {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.grammar-example:hover {
+  border-color: var(--accent-soft);
+}
+
+.grammar-example.speaking {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+}
+
+.grammar-ex-ja {
+  font-size: 15.5px;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.grammar-ex-zh {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.grammar-examples + .reading-listen {
+  margin-top: 14px;
+}
+
 

@@ -1,5 +1,5 @@
-let sceneCache = null
 let chapterCache = null
+let grammarCache = null
 const levelCache = {}
 
 function fetchJson(url) {
@@ -9,10 +9,10 @@ function fetchJson(url) {
   })
 }
 
-export function loadScenes() {
-  if (sceneCache) return Promise.resolve(sceneCache)
-  return fetchJson('./data/scenes.json').then((d) => {
-    sceneCache = d
+export function loadGrammar() {
+  if (grammarCache) return Promise.resolve(grammarCache)
+  return fetchJson('./data/grammar.json').then((d) => {
+    grammarCache = d
     return d
   })
 }
@@ -39,11 +39,6 @@ export const MASTERY_LEVEL = 3
 export function normLevel(v) {
   if (typeof v === 'number') return Math.min(MASTERY_LEVEL, Math.max(0, v))
   return v ? MASTERY_LEVEL : 0
-}
-
-export function levelInScene(learned, sceneId, ja) {
-  if (!learned || !learned[sceneId]) return 0
-  return normLevel(learned[sceneId][ja])
 }
 
 export function maxLevelAnywhere(learned, ja) {
