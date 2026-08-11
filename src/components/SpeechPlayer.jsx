@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   initVoices,
   speakTextAsync,
@@ -9,6 +9,7 @@ import {
   EDGE_VOICES_EN,
   edgeVoiceForLang,
 } from '../utils/speech.js'
+import { throttle } from '../utils/rateLimit.js'
 import useEdgeStatus from '../hooks/useEdgeStatus.js'
 
 export default function SpeechPlayer({ text, mini = false, compact = false, lang = 'ja' }) {
@@ -57,6 +58,14 @@ export default function SpeechPlayer({ text, mini = false, compact = false, lang
     }
   }
 
+  const toggleRef = useRef(null)
+  if (!toggleRef.current) {
+    toggleRef.current = throttle(() => {
+      toggle()
+    }, 600)
+  }
+  const throttledToggle = toggleRef.current
+
   const pickVoice = (v) => {
     setVoice(v)
     setSpeechPrefs({ voice: v })
@@ -98,7 +107,7 @@ export default function SpeechPlayer({ text, mini = false, compact = false, lang
       <button
         className={`speaker mini ${speaking ? 'speaking' : ''} ${loading ? 'loading' : ''}`}
         title="发音"
-        onClick={toggle}
+        onClick={throttledToggle}
         disabled={disabled}
       >
         {loading ? '⏳' : speaking ? '⏹' : '🔊'}
@@ -110,7 +119,7 @@ export default function SpeechPlayer({ text, mini = false, compact = false, lang
     return (
       <button
         className={`speaker ${speaking ? 'speaking' : ''} ${loading ? 'loading' : ''}`}
-        onClick={toggle}
+        onClick={throttledToggle}
         disabled={disabled}
         title="朗读"
       >
@@ -121,7 +130,7 @@ export default function SpeechPlayer({ text, mini = false, compact = false, lang
 
   return (
     <div className="speech-player">
-      <button className="btn btn-primary" onClick={toggle} disabled={disabled || loading}>
+      <button className="btn btn-primary" onClick={throttledToggle} disabled={disabled || loading}>
         {loading ? '⏳ 読み上げ中…' : speaking ? '⏹ 停止' : '▶ 標準音声を聞く'}
       </button>
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CATEGORIES, LEVELS, topicLevel } from '../data/topics.js'
 import { EN_CATEGORIES, EN_LEVELS, enTopicLevel } from '../data/english.js'
 import SpeechPlayer from './SpeechPlayer.jsx'
 import { loadEnglishSentences, searchSentences, findSpan } from '../utils/sentences.js'
+import { debounce } from '../utils/rateLimit.js'
 
 function Marked({ text, q }) {
   if (!text || !q) return text
@@ -39,18 +40,35 @@ export default function TopicBrowser({
   const levelOf = isEn ? enTopicLevel : topicLevel
   const q = (query ?? '').trim().toLowerCase()
 
+  const qRef = useRef(q)
+  qRef.current = q
+
+  const sentLoad = useRef(null)
+  if (!sentLoad.current) {
+    sentLoad.current = debounce((qText) => {
+      loadEnglishSentences()
+        .then((d) => {
+          if (qText === qRef.current) {
+            setSent(d)
+            setSentErr(false)
+          }
+        })
+        .catch(() => {
+          if (qText === qRef.current) setSentErr(true)
+        })
+    }, 250)
+  }
+
   useEffect(() => {
     if (!q) {
+      sentLoad.current.cancel()
       setSent(null)
       setSentErr(false)
       return
     }
-    let alive = true
-    loadEnglishSentences()
-      .then((d) => alive && setSent(d))
-      .catch(() => alive && setSentErr(true))
+    sentLoad.current(q)
     return () => {
-      alive = false
+      sentLoad.current.cancel()
     }
   }, [q])
 

@@ -12,6 +12,7 @@ import { mergeCloudState, useAuth } from './context/auth.jsx'
 import { loadSpeechPrefs, saveSpeechPrefs } from './utils/storage.js'
 import { setSoundEnabled, soundEnabledValue } from './utils/sound.js'
 import { setHapticsEnabled, hapticsEnabled } from './utils/haptics.js'
+import { debounce } from './utils/rateLimit.js'
 import LoginView from './components/LoginView.jsx'
 import {
   loadHistory,
@@ -100,6 +101,15 @@ export default function App() {
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [practiceActive, setPracticeActive] = useState(false)
 
+  const debouncedSave = useRef({
+    history: debounce((v) => saveHistory(v), 600),
+    profile: debounce((v) => saveProfile(v), 600),
+    overrides: debounce((v) => saveOverrides(v), 400),
+    topicStates: debounce((v) => saveTopicStates(v), 400),
+    goal: debounce((v) => saveGoal(v), 400),
+    learnedWords: debounce((v) => saveWordsProgress(v), 400),
+  }).current
+
   const closeMenu = useCallback(() => {
     if (menuClosing) return
     setMenuClosing(true)
@@ -109,6 +119,22 @@ export default function App() {
       setMenuClosing(false)
     }, 260)
   }, [menuClosing])
+
+  useEffect(() => {
+    const flush = () => {
+      for (const k of Object.keys(debouncedSave)) debouncedSave[k].flush()
+    }
+    window.addEventListener('beforeunload', flush)
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush()
+    })
+    return () => {
+      window.removeEventListener('beforeunload', flush)
+      window.removeEventListener('pagehide', flush)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (!showMenu) return
@@ -283,10 +309,10 @@ export default function App() {
       const cur = prev[sceneId] || {}
       const nextLevel = Math.min(3, Math.max(0, normLevel(cur[ja]) + delta))
       const next = { ...prev, [sceneId]: { ...cur, [ja]: nextLevel } }
-      saveWordsProgress(next)
+      debouncedSave.learnedWords(next)
       return next
     })
-  }, [])
+  }, [debouncedSave])
 
   const changeView = (next) => {
     if (next !== view && practiceActive) {
@@ -346,7 +372,7 @@ export default function App() {
 
   const handleSaveProfile = (p) => {
     setProfile(p)
-    saveProfile(p)
+    debouncedSave.profile(p)
   }
 
   const handleSetOverride = (id, text) => {
@@ -354,18 +380,18 @@ export default function App() {
     if (text === null || text.trim() === '') delete next[id]
     else next[id] = text.trim()
     setOverrides(next)
-    saveOverrides(next)
+    debouncedSave.overrides(next)
   }
 
   const addRecord = (record) => {
     const next = [record, ...history].slice(0, 500)
     setHistory(next)
-    saveHistory(next)
+    debouncedSave.history(next)
   }
 
   const clearHistory = () => {
     setHistory([])
-    saveHistory([])
+    debouncedSave.history([])
   }
 
   const handleToggleTopicState = (id, key) => {
@@ -380,12 +406,12 @@ export default function App() {
       next[id] = { ...cur, [key]: true }
     }
     setTopicStates(next)
-    saveTopicStates(next)
+    debouncedSave.topicStates(next)
   }
 
   const handleSetGoal = (min) => {
     setGoal(min)
-    saveGoal(min)
+    debouncedSave.goal(min)
   }
 
   const handleSearch = (q) => {

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { tap } from '../utils/haptics.js'
+import { throttle } from '../utils/rateLimit.js'
 
 export default function SegmentedTabs({ items, active, onChange }) {
   const listRef = useRef(null)
@@ -20,10 +21,11 @@ export default function SegmentedTabs({ items, active, onChange }) {
     update()
     const ro = new ResizeObserver(update)
     if (listRef.current) ro.observe(listRef.current)
-    window.addEventListener('resize', update)
+    const onResize = throttle(update, 120)
+    window.addEventListener('resize', onResize)
     return () => {
       ro.disconnect()
-      window.removeEventListener('resize', update)
+      window.removeEventListener('resize', onResize)
     }
   }, [items]) // eslint-disable-line react-hooks/exhaustive-deps
 
