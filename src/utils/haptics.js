@@ -16,6 +16,9 @@ export function setHapticsEnabled(v) {
   } catch {
     // ignore
   }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('haptics-changed', { detail: { enabled } }))
+  }
 }
 
 export function hapticsEnabled() {

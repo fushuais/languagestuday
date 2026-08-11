@@ -8,7 +8,10 @@ import InterviewView from './components/InterviewView.jsx'
 import Onboarding, { shouldOnboard } from './components/Onboarding.jsx'
 import EdgeStatusBadge from './components/EdgeStatusBadge.jsx'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { useAuth } from './context/auth.jsx'
+import { mergeCloudState, useAuth } from './context/auth.jsx'
+import { loadSpeechPrefs, saveSpeechPrefs } from './utils/storage.js'
+import { setSoundEnabled, soundEnabledValue } from './utils/sound.js'
+import { setHapticsEnabled, hapticsEnabled } from './utils/haptics.js'
 import LoginView from './components/LoginView.jsx'
 import {
   loadHistory,
@@ -52,8 +55,26 @@ const VIEWS_EN = [
   { id: 'history', label: 'History' },
 ]
 
+const WORDS_KEY = 'nihongo-words-v1'
+
+function loadWordsProgress() {
+  try {
+    return JSON.parse(localStorage.getItem(WORDS_KEY)) || {}
+  } catch {
+    return {}
+  }
+}
+
+function saveWordsProgress(p) {
+  try {
+    localStorage.setItem(WORDS_KEY, JSON.stringify(p))
+  } catch {
+    // ignore
+  }
+}
+
 export default function App() {
-  const { user, logout, applyRemote, pushLocal } = useAuth()
+  const { user, syncStatus, logout, applyRemote, pushLocal } = useAuth()
   const [lang, setLang] = useState(loadLang)
   const [theme, setTheme] = useState(loadTheme)
   const [switching, setSwitching] = useState(false)
@@ -64,6 +85,10 @@ export default function App() {
   const [overrides, setOverrides] = useState(loadOverrides)
   const [topicStates, setTopicStates] = useState(loadTopicStates)
   const [goal, setGoal] = useState(loadGoal)
+  const [learnedWords, setLearnedWords] = useState(() => loadWordsProgress())
+  const [speechPrefs, setSpeechPrefs] = useState(() => loadSpeechPrefs())
+  const [soundOn, setSoundOn] = useState(() => soundEnabledValue())
+  const [hapticsOn, setHapticsOn] = useState(() => hapticsEnabled())
   const [searchQuery, setSearchQuery] = useState('')
   const [showOnboard, setShowOnboard] = useState(() => shouldOnboard())
   const [showAbout, setShowAbout] = useState(false)
@@ -115,6 +140,20 @@ export default function App() {
     if (meta) meta.setAttribute('content', theme === 'light' ? '#f2f6fa' : '#0f1720')
   }, [theme])
 
+  useEffect(() => {
+    const onSpeechPrefs = (e) => setSpeechPrefs(e.detail || loadSpeechPrefs())
+    const onSound = (e) => setSoundOn(e.detail.enabled)
+    const onHaptics = (e) => setHapticsOn(e.detail.enabled)
+    window.addEventListener('speech-prefs-changed', onSpeechPrefs)
+    window.addEventListener('sound-changed', onSound)
+    window.addEventListener('haptics-changed', onHaptics)
+    return () => {
+      window.removeEventListener('speech-prefs-changed', onSpeechPrefs)
+      window.removeEventListener('sound-changed', onSound)
+      window.removeEventListener('haptics-changed', onHaptics)
+    }
+  }, [])
+
   const syncIn = useRef(false)
 
   useEffect(() => {
@@ -123,24 +162,77 @@ export default function App() {
     applyRemote()
       .then((cloud) => {
         if (!cloud) return
-        setHistory((prev) =>
-          (cloud.history?.length ?? 0) > prev.length ? cloud.history : prev,
+        const merged = mergeCloudState(
+          {
+            history,
+            profile,
+            overrides,
+            topicStates,
+            goal,
+            learnedWords,
+            theme,
+            lang,
+            speechPrefs,
+            sound: soundOn,
+            haptics: hapticsOn,
+          },
+          cloud,
         )
-        setProfile((prev) => ({ ...prev, ...(cloud.profile ?? {}) }))
-        setOverrides((prev) => ({ ...prev, ...(cloud.overrides ?? {}) }))
-        setTopicStates((prev) => ({ ...prev, ...(cloud.topicStates ?? {}) }))
-        if (cloud.goal) setGoal(cloud.goal)
+        setHistory(merged.history)
+        setProfile(merged.profile)
+        setOverrides(merged.overrides)
+        setTopicStates(merged.topicStates)
+        setGoal(merged.goal)
+        setLearnedWords(merged.learnedWords)
+        if (merged.theme !== theme) {
+          setTheme(merged.theme)
+          saveTheme(merged.theme)
+        }
+        if (merged.lang !== lang) {
+          setLang(merged.lang)
+          saveLang(merged.lang)
+          setTopic(merged.lang === 'en' ? EN_TOPICS[0] : JA_TOPICS[0])
+        }
+        if (merged.speechPrefs) {
+          setSpeechPrefs(merged.speechPrefs)
+          saveSpeechPrefs(merged.speechPrefs)
+        }
+        if (typeof merged.sound === 'boolean' && merged.sound !== soundOn) {
+          setSoundOn(merged.sound)
+          setSoundEnabled(merged.sound)
+        }
+        if (typeof merged.haptics === 'boolean' && merged.haptics !== hapticsOn) {
+          setHapticsOn(merged.haptics)
+          setHapticsEnabled(merged.haptics)
+        }
+      })
+      .catch(() => {
+        // applyRemote 内部已把 syncStatus 置为 error
       })
       .finally(() => {
         syncIn.current = false
       })
-  }, [user, applyRemote])
+    // 拉取只在登录态变化时执行一次，state 依赖用 ref 快照传递即可
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   const lastPushRef = useRef('')
 
   useEffect(() => {
     if (!user) return
-    const snapshot = JSON.stringify({ profile, overrides, topicStates, goal })
+    const snapshot = JSON.stringify({
+      history,
+      profile,
+      overrides,
+      topicStates,
+      goal,
+      learnedWords,
+      theme,
+      lang,
+      speechPrefs,
+      sound: soundOn,
+      haptics: hapticsOn,
+    })
     if (snapshot === lastPushRef.current) return
     lastPushRef.current = snapshot
     const timer = setTimeout(() => {
@@ -150,10 +242,30 @@ export default function App() {
         overrides,
         topicStates,
         goal,
+        learnedWords,
+        theme,
+        lang,
+        speechPrefs,
+        sound: soundOn,
+        haptics: hapticsOn,
       })
     }, 1200)
     return () => clearTimeout(timer)
-  }, [user, history, profile, overrides, topicStates, goal, pushLocal])
+  }, [
+    user,
+    history,
+    profile,
+    overrides,
+    topicStates,
+    goal,
+    learnedWords,
+    theme,
+    lang,
+    speechPrefs,
+    soundOn,
+    hapticsOn,
+    pushLocal,
+  ])
 
   const toggleTheme = () => {
     tap()
@@ -164,6 +276,15 @@ export default function App() {
     saveTheme(next)
     window.setTimeout(() => root.classList.remove('theme-anim'), 450)
   }
+
+  const toggleWord = useCallback((sceneId, ja) => {
+    setLearnedWords((prev) => {
+      const cur = prev[sceneId] || {}
+      const next = { ...prev, [sceneId]: { ...cur, [ja]: !cur[ja] } }
+      saveWordsProgress(next)
+      return next
+    })
+  }, [])
 
   const changeView = (next) => {
     if (next !== view && practiceActive) {
@@ -358,7 +479,17 @@ export default function App() {
               >
                 {user.username}
               </button>
-              <span className="sync-dot" title="已登录 · 数据云同步" aria-hidden="true" />
+              <span
+                className={`sync-dot sync-${syncStatus}`}
+                title={
+                  syncStatus === 'syncing'
+                    ? '正在同步…'
+                    : syncStatus === 'error'
+                      ? '同步失败，检查网络后重试'
+                      : `已登录 ${user.username} · 数据云同步`
+                }
+                aria-hidden="true"
+              />
             </>
           ) : (
             <button
@@ -433,7 +564,7 @@ export default function App() {
 
         {view === 'words' && (
           <Suspense fallback={<div className="view-fallback" />}>
-            <WordsView />
+            <WordsView learned={learnedWords} onToggleWord={toggleWord} />
           </Suspense>
         )}
 

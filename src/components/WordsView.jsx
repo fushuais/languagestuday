@@ -3,7 +3,6 @@ import SpeechPlayer from './SpeechPlayer.jsx'
 import { loadScenes, loadLevel, loadChapters, masteredAnywhere } from '../utils/vocab.js'
 import { tap, success } from '../utils/haptics.js'
 
-const KEY = 'nihongo-words-v1'
 const LEVELS = ['N5', 'N4', 'N3', 'N2']
 const LIB_TOTAL = { N5: 794, N4: 750, N3: 1796, N2: 3192 }
 
@@ -18,22 +17,6 @@ function filterWords(words, level) {
   if (level === 'all') return words
   if (level === 'basic') return words.filter((w) => w.level === 'N5' || w.level === 'N4')
   return words.filter((w) => w.level === level)
-}
-
-function loadProgress() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY)) || {}
-  } catch {
-    return {}
-  }
-}
-
-function saveProgress(p) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(p))
-  } catch {
-    // ignore
-  }
 }
 
 function shuffle(arr) {
@@ -55,10 +38,9 @@ const EmptyHint = ({ text }) => (
 
 const WordSpeech = ({ text }) => <SpeechPlayer mini text={text} lang="ja" />
 
-export default function WordsView() {
+export default function WordsView({ learned, onToggleWord }) {
   const [scenes, setScenes] = useState(null)
   const [view, setView] = useState('home')
-  const [learned, setLearned] = useState(loadProgress)
   const [lastLearned, setLastLearned] = useState(null)
 
   useEffect(() => {
@@ -68,10 +50,7 @@ export default function WordsView() {
   }, [])
 
   const markLearned = (set, theme, ja) => {
-    const cur = set[theme] || {}
-    const next = { ...set, [theme]: { ...cur, [ja]: !cur[ja] } }
-    setLearned(next)
-    saveProgress(next)
+    onToggleWord(theme, ja)
     setLastLearned({ theme, ja })
   }
 

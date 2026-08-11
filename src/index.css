@@ -4059,6 +4059,27 @@ select:focus-visible {
   margin-right: 4px;
   flex-shrink: 0;
   box-shadow: 0 0 0 2px var(--card);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.sync-dot.sync-syncing {
+  background: #ffb300;
+  animation: sync-pulse 1s ease-in-out infinite;
+}
+
+.sync-dot.sync-error {
+  background: #e63946;
+  box-shadow: 0 0 0 2px var(--card), 0 0 6px rgba(230, 57, 70, 0.8);
+}
+
+@keyframes sync-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 /* ===== Login panel ===== */

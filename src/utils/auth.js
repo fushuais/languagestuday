@@ -48,7 +48,12 @@ async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) }
   const token = loadToken()
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  let res
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  } catch {
+    throw new Error('无法连接服务器，请检查网络后重试')
+  }
   if (res.status === 401) {
     clearSession()
   }

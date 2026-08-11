@@ -17,6 +17,9 @@ export function setSoundEnabled(v) {
   } catch {
     // ignore
   }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('sound-changed', { detail: { enabled } }))
+  }
 }
 
 export function soundEnabledValue() {
