@@ -4732,6 +4732,27 @@ select:focus-visible {
   line-height: 1.9;
 }
 
+.reading-tap-hint {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.reading-sentence {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.reading-sentence:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.reading-sentence.speaking {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+}
+
 .reading-listen {
   display: flex;
   align-items: center;
@@ -4768,6 +4789,23 @@ select:focus-visible {
   border-radius: var(--radius-sm);
   padding: 5px 10px;
   font-size: 13px;
+}
+
+.reading-word-speak {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--accent-soft);
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  transition: transform 0.15s ease;
+}
+
+.reading-word-speak:hover {
+  transform: scale(1.15);
 }
 
 .reading-word-ja {

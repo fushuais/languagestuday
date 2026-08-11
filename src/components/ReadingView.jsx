@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import SpeechPlayer from './SpeechPlayer.jsx'
 import { loadReading, loadEssayTemplates } from '../utils/reading.js'
+import { speakText, stopSpeech, getSpeechPrefs, setSpeechLang } from '../utils/speech.js'
 import { tap, success } from '../utils/haptics.js'
 
 const LEVELS = [
@@ -9,6 +10,13 @@ const LEVELS = [
   { id: 'N3', label: 'N3' },
   { id: 'N2', label: 'N2' },
 ]
+
+function splitSentences(text) {
+  return String(text)
+    .split(/(?<=[。！？!?])/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
 
 function useLoad(fn) {
   const [data, setData] = useState(null)
@@ -204,6 +212,25 @@ function EssayArea({ goHome, onPick }) {
 function ReadingDetail({ article, goBack }) {
   const [showZh, setShowZh] = useState(false)
   const [openQ, setOpenQ] = useState({})
+  const [speakingIdx, setSpeakingIdx] = useState(null)
+  const sentences = splitSentences(article.ja)
+
+  const speakSentence = (idx) => {
+    tap()
+    if (speakingIdx === idx) {
+      stopSpeech()
+      setSpeakingIdx(null)
+      return
+    }
+    setSpeechLang('ja')
+    speakText(sentences[idx], {
+      rate: getSpeechPrefs().rate,
+      onEnd: () => setSpeakingIdx(null),
+    })
+    setSpeakingIdx(idx)
+  }
+
+  useEffect(() => () => stopSpeech(), [])
 
   return (
     <>
@@ -232,9 +259,22 @@ function ReadingDetail({ article, goBack }) {
           </button>
         </div>
 
-        <p className={`reading-text ${showZh ? 'reading-text-zh' : ''}`}>
-          {showZh ? article.zh : article.ja}
-        </p>
+        {showZh ? (
+          <p className={`reading-text reading-text-zh`}>{article.zh}</p>
+        ) : (
+          <div className="reading-text">
+            <p className="reading-tap-hint">点击句子可单句朗读</p>
+            {sentences.map((s, i) => (
+              <span
+                key={i}
+                className={`reading-sentence ${speakingIdx === i ? 'speaking' : ''}`}
+                onClick={() => speakSentence(i)}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        )}
         {!showZh && (
           <div className="reading-listen">
             <SpeechPlayer text={article.ja} lang="ja" />
@@ -248,6 +288,17 @@ function ReadingDetail({ article, goBack }) {
         <div className="reading-words">
           {article.words.map((w) => (
             <div key={w.ja} className="reading-word">
+              <button
+                className="reading-word-speak"
+                onClick={() => {
+                  tap()
+                  setSpeechLang('ja')
+                  speakText(w.ja, { rate: getSpeechPrefs().rate, onEnd: () => {} })
+                }}
+                title="朗读单词"
+              >
+                🔊
+              </button>
               <span className="reading-word-ja">{w.ja}</span>
               {w.kana && <span className="reading-word-kana">{w.kana}</span>}
               <span className="reading-word-zh">{w.zh}</span>
