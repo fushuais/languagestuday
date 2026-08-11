@@ -1,6 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export default function useShortcuts(handlers = {}) {
+  const handlersRef = useRef(handlers)
+  handlersRef.current = handlers
+
   useEffect(() => {
     const onKey = (e) => {
       const t = e.target
@@ -12,7 +15,7 @@ export default function useShortcuts(handlers = {}) {
           t.isContentEditable)
       )
         return
-      const h = handlers[e.key]
+      const h = handlersRef.current[e.key]
       if (typeof h === 'function') {
         e.preventDefault()
         h(e)
@@ -23,5 +26,5 @@ export default function useShortcuts(handlers = {}) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [handlers])
+  }, [])
 }

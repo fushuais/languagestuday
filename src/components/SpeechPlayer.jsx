@@ -20,6 +20,11 @@ export default function SpeechPlayer({ text, mini = false, compact = false, lang
   const [engine, setEngine] = useState(null)
   const edge = useEdgeStatus(false)
   const voices = lang === 'en' ? EDGE_VOICES_EN : EDGE_VOICES_JA
+  const aliveRef = useRef(true)
+  useEffect(() => () => {
+    aliveRef.current = false
+    stopSpeech()
+  }, [])
 
   useEffect(() => {
     initVoices()
@@ -50,7 +55,8 @@ export default function SpeechPlayer({ text, mini = false, compact = false, lang
       return
     }
     setLoading(true)
-    const eng = await speakTextAsync(text, { rate, onEnd: () => setSpeaking(false) })
+    const eng = await speakTextAsync(text, { rate, onEnd: () => aliveRef.current && setSpeaking(false) })
+    if (!aliveRef.current) return
     setLoading(false)
     if (eng !== 'none') {
       setSpeaking(true)
@@ -59,9 +65,11 @@ export default function SpeechPlayer({ text, mini = false, compact = false, lang
   }
 
   const toggleRef = useRef(null)
+  const latestToggleRef = useRef(toggle)
+  latestToggleRef.current = toggle
   if (!toggleRef.current) {
     toggleRef.current = throttle(() => {
-      toggle()
+      latestToggleRef.current()
     }, 600)
   }
   const throttledToggle = toggleRef.current

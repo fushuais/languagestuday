@@ -43,18 +43,27 @@ export default function TopicBrowser({
   const qRef = useRef(q)
   qRef.current = q
 
+  const mountedRef = useRef(true)
+  useEffect(
+    () => () => {
+      mountedRef.current = false
+      sentLoad.current?.cancel()
+    },
+    [],
+  )
+
   const sentLoad = useRef(null)
   if (!sentLoad.current) {
     sentLoad.current = debounce((qText) => {
       loadEnglishSentences()
         .then((d) => {
-          if (qText === qRef.current) {
+          if (mountedRef.current && qText === qRef.current) {
             setSent(d)
             setSentErr(false)
           }
         })
         .catch(() => {
-          if (qText === qRef.current) setSentErr(true)
+          if (mountedRef.current && qText === qRef.current) setSentErr(true)
         })
     }, 250)
   }

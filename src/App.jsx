@@ -110,6 +110,31 @@ export default function App() {
     learnedWords: debounce((v) => saveWordsProgress(v), 400),
   }).current
 
+  // history 最新值引用：addRecord/clearHistory 需在 setState 后立即拿到最终列表用于保存
+  const historyRef = useRef(history)
+  historyRef.current = history
+
+  // learnedWords 最新值引用：bumpWord 在 updater 外计算新值用于保存
+  const learnedRef = useRef(learnedWords)
+  learnedRef.current = learnedWords
+
+  // 最新本地状态快照：供登录后与云端 merge（登录拉取是异步的，
+  // 期间可能有本地新记录产生，用 ref 保证使用最新的本地基线）
+  const localStateRef = useRef()
+  localStateRef.current = {
+    history,
+    profile,
+    overrides,
+    topicStates,
+    goal,
+    learnedWords,
+    theme,
+    lang,
+    speechPrefs,
+    sound: soundOn,
+    haptics: hapticsOn,
+  }
+
   const closeMenu = useCallback(() => {
     if (menuClosing) return
     setMenuClosing(true)
@@ -124,14 +149,16 @@ export default function App() {
     const flush = () => {
       for (const k of Object.keys(debouncedSave)) debouncedSave[k].flush()
     }
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
     window.addEventListener('beforeunload', flush)
     window.addEventListener('pagehide', flush)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') flush()
-    })
+    document.addEventListener('visibilitychange', onVis)
     return () => {
       window.removeEventListener('beforeunload', flush)
       window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVis)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -189,22 +216,7 @@ export default function App() {
     applyRemote()
       .then((cloud) => {
         if (!cloud) return
-        const merged = mergeCloudState(
-          {
-            history,
-            profile,
-            overrides,
-            topicStates,
-            goal,
-            learnedWords,
-            theme,
-            lang,
-            speechPrefs,
-            sound: soundOn,
-            haptics: hapticsOn,
-          },
-          cloud,
-        )
+        const merged = mergeCloudState(localStateRef.current, cloud)
         setHistory(merged.history)
         setProfile(merged.profile)
         setOverrides(merged.overrides)
@@ -308,10 +320,10 @@ export default function App() {
     setLearnedWords((prev) => {
       const cur = prev[sceneId] || {}
       const nextLevel = Math.min(3, Math.max(0, normLevel(cur[ja]) + delta))
-      const next = { ...prev, [sceneId]: { ...cur, [ja]: nextLevel } }
-      debouncedSave.learnedWords(next)
-      return next
+      return { ...prev, [sceneId]: { ...cur, [ja]: nextLevel } }
     })
+    learnedRef.current = { ...learnedRef.current, [sceneId]: { ...(learnedRef.current[sceneId] || {}), [ja]: Math.min(3, Math.max(0, normLevel((learnedRef.current[sceneId] || {})[ja]) + delta)) } }
+    debouncedSave.learnedWords(learnedRef.current)
   }, [debouncedSave])
 
   const changeView = (next) => {
@@ -386,9 +398,12 @@ export default function App() {
   }
 
   const addRecord = (record) => {
-    const next = [record, ...history].slice(0, 500)
-    setHistory(next)
-    debouncedSave.history(next)
+    setHistory((prev) => {
+      const next = [record, ...prev].slice(0, 500)
+      historyRef.current = next
+      return next
+    })
+    queueMicrotask(() => debouncedSave.history(historyRef.current))
   }
 
   const clearHistory = () => {

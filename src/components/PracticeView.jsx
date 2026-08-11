@@ -49,6 +49,7 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
   const baseRef = useRef(0)
   const hintIdxRef = useRef(0)
   const hintTimerRef = useRef(null)
+  const playTokenRef = useRef(0)
 
   const pacePool = useMemo(() => {
     const list = []
@@ -222,6 +223,7 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
       setSeq(null)
       return
     }
+    const token = ++playTokenRef.current
     cancelSequence()
     const parts = [
       ...topic.keywords.map((k) => readingOf(k)),
@@ -231,10 +233,14 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
     setSeq({ total: parts.length, current: 0 })
     await speakSequence(parts, {
       rate: getSpeechPrefs().rate,
-      onProgress: (i) => setSeq({ total: parts.length, current: i }),
-      onEnd: () => setSeq(null),
+      onProgress: (i) => {
+        if (playTokenRef.current === token) setSeq({ total: parts.length, current: i })
+      },
+      onEnd: () => {
+        if (playTokenRef.current === token) setSeq(null)
+      },
     })
-    setSeq(null)
+    if (playTokenRef.current === token) setSeq(null)
   }
 
   const nextTopic = () => {

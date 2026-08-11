@@ -27,7 +27,8 @@ export default function HistoryView({
   const totalSentences = records.reduce((sum, r) => sum + r.sentences, 0)
 
   const rec = recommendTopic(records, allTopics)
-  const goalPct = Math.min(100, Math.round((stats.todayMinutes / goal) * 100))
+  const safeGoal = goal > 0 ? goal : 15
+  const goalPct = Math.min(100, Math.round((stats.todayMinutes / safeGoal) * 100))
   const maxDay = Math.max(...stats.last7.map((d) => d.minutes), 1)
 
   return (
@@ -41,7 +42,7 @@ export default function HistoryView({
         <div className="streak-goal">
           <div className="goal-row">
             <span className="goal-title">
-              今日の目標 · {stats.todayMinutes}/{goal}分
+              今日の目標 · {stats.todayMinutes}/{safeGoal}分
             </span>
             <button className="goal-edit" onClick={() => setShowGoal((s) => !s)}>
               {showGoal ? '閉じる' : '設定'}

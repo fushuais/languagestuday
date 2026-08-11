@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SpeechPlayer from './SpeechPlayer.jsx'
 import ReadingView from './ReadingView.jsx'
 import {
@@ -74,9 +74,13 @@ export default function WordsView({ learned, onBumpWord }) {
   const [lastLearned, setLastLearned] = useState(null)
 
   useEffect(() => {
+    let alive = true
     loadScenes()
-      .then(setScenes)
-      .catch(() => setScenes([]))
+      .then((d) => alive && setScenes(d))
+      .catch(() => alive && setScenes([]))
+    return () => {
+      alive = false
+    }
   }, [])
 
   const markLearned = (set, theme, ja, delta = 1) => {
@@ -393,45 +397,52 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
       {mode === 'cards' && (
         <div className="card-study">
           {filtered.length ? (
-            <>
-              <div className="flashcard" onClick={() => setFlipped((v) => !v)}>
-                <div className={`fc-inner ${flipped ? 'flipped' : ''}`}>
-                  <div className="fc-face fc-front">
-                    <div className="fc-ja">{filtered[cardIdx].ja}</div>
-                    {filtered[cardIdx].kana && (
-                      <div className="fc-kana">{filtered[cardIdx].kana}</div>
-                    )}
-                    <WordSpeech text={filtered[cardIdx].ja} />
-                    <span className={`word-level lv-${filtered[cardIdx].level}`}>
-                      {filtered[cardIdx].level}
-                    </span>
-                    <div className="fc-hint">点击卡片看中文</div>
-                  </div>
-                  <div className="fc-face fc-back">
-                    <MasteryDots level={levelInScene(learned, scene.id, filtered[cardIdx].ja)} />
-                    <div className="fc-zh">{filtered[cardIdx].zh}</div>
-                    {filtered[cardIdx].exJa && (
-                      <div className="fc-ex">
-                        <div className="fc-ex-ja">{filtered[cardIdx].exJa}</div>
-                        <div className="fc-ex-zh">{filtered[cardIdx].exZh}</div>
+            (() => {
+              const activeWord = filtered.length ? filtered[Math.min(cardIdx, filtered.length - 1)] : null
+              return activeWord ? (
+                <>
+                  <div className="flashcard" onClick={() => setFlipped((v) => !v)}>
+                    <div className={`fc-inner ${flipped ? 'flipped' : ''}`}>
+                      <div className="fc-face fc-front">
+                        <div className="fc-ja">{activeWord.ja}</div>
+                        {activeWord.kana && (
+                          <div className="fc-kana">{activeWord.kana}</div>
+                        )}
+                        <WordSpeech text={activeWord.ja} />
+                        <span className={`word-level lv-${activeWord.level}`}>
+                          {activeWord.level}
+                        </span>
+                        <div className="fc-hint">点击卡片看中文</div>
                       </div>
-                    )}
-                    <div className="fc-hint">点击卡片回正面</div>
+                      <div className="fc-face fc-back">
+                        <MasteryDots level={levelInScene(learned, scene.id, activeWord.ja)} />
+                        <div className="fc-zh">{activeWord.zh}</div>
+                        {activeWord.exJa && (
+                          <div className="fc-ex">
+                            <div className="fc-ex-ja">{activeWord.exJa}</div>
+                            <div className="fc-ex-zh">{activeWord.exZh}</div>
+                          </div>
+                        )}
+                        <div className="fc-hint">点击卡片回正面</div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="fc-actions">
-                <button className="btn btn-ghost" onClick={() => nextCard(false)}>
-                  😥 まだ
-                </button>
-                <button className="btn btn-primary" onClick={() => nextCard(true)}>
-                  ✅ 覚えた
-                </button>
-              </div>
-              <div className="fc-progress">
-                {cardIdx + 1} / {filtered.length}
-              </div>
-            </>
+                  <div className="fc-actions">
+                    <button className="btn btn-ghost" onClick={() => nextCard(false)}>
+                      😥 まだ
+                    </button>
+                    <button className="btn btn-primary" onClick={() => nextCard(true)}>
+                      ✅ 覚えた
+                    </button>
+                  </div>
+                  <div className="fc-progress">
+                    {Math.min(cardIdx, filtered.length - 1) + 1} / {filtered.length}
+                  </div>
+                </>
+              ) : (
+                <EmptyHint text="当前级别没有单词，换个筛选试试。" />
+              )
+            })()
           ) : (
             <EmptyHint text="当前级别没有单词，换个筛选试试。" />
           )}
@@ -515,25 +526,33 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
   const [idx, setIdx] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [quiz, setQuiz] = useState(null)
+  const aliveRef = useRef(true)
+  useEffect(() => () => {
+    aliveRef.current = false
+  }, [])
 
   const words = useMemo(() => banks[bank] || [], [banks, bank])
   const chapterMap = useMemo(() => Object.fromEntries(chapters.map((c) => [c.id, c])), [chapters])
 
   useEffect(() => {
+    let alive = true
     loadChapters()
-      .then(setChapters)
-      .catch(() => setChapters([]))
+      .then((d) => alive && setChapters(d))
+      .catch(() => alive && setChapters([]))
+    return () => {
+      alive = false
+    }
   }, [])
 
   const ensure = useCallback((lv) => {
     if (banks[lv]) return Promise.resolve(banks[lv])
     return loadLevel(lv)
       .then((d) => {
-        setBanks((b) => ({ ...b, [lv]: d }))
+        if (aliveRef.current) setBanks((b) => ({ ...b, [lv]: d }))
         return d
       })
       .catch(() => {
-        setBanks((b) => ({ ...b, [lv]: [] }))
+        if (aliveRef.current) setBanks((b) => ({ ...b, [lv]: [] }))
         return []
       })
   }, [banks])
@@ -750,6 +769,10 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
           onChange={(e) => {
             setSearch(e.target.value)
             setShowCount(100)
+            if (mode === 'cards') {
+              setIdx(0)
+              setFlipped(false)
+            }
           }}
           placeholder={`在 ${bank} 中搜索（假名/汉字/中文）`}
           aria-label="搜索单词"
@@ -810,46 +833,53 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
       {mode === 'cards' && (
         <div className="card-study">
           {filtered.length ? (
-            <>
-              {filtered.length > 300 && (
-                <p className="word-hint">词数较多，建议先用搜索缩小范围。</p>
-              )}
-              <div className="flashcard" onClick={() => setFlipped((v) => !v)}>
-                <div className={`fc-inner ${flipped ? 'flipped' : ''}`}>
-                  <div className="fc-face fc-front">
-                    <div className="fc-ja">{filtered[idx].ja}</div>
-                    {filtered[idx].kana && <div className="fc-kana">{filtered[idx].kana}</div>}
-                    <WordSpeech text={filtered[idx].ja} />
-                    <span className={`word-level lv-${filtered[idx].level}`}>
-                      {filtered[idx].level}
-                    </span>
-                    <div className="fc-hint">点击卡片看中文</div>
-                  </div>
-                  <div className="fc-face fc-back">
-                    <MasteryDots level={maxLevelAnywhere(learned, filtered[idx].ja)} />
-                    <div className="fc-zh">{filtered[idx].zh}</div>
-                    {filtered[idx].exJa && (
-                      <div className="fc-ex">
-                        <div className="fc-ex-ja">{filtered[idx].exJa}</div>
-                        <div className="fc-ex-zh">{filtered[idx].exZh}</div>
+            (() => {
+              const activeWord = filtered.length ? filtered[Math.min(idx, filtered.length - 1)] : null
+              return activeWord ? (
+                <>
+                  {filtered.length > 300 && (
+                    <p className="word-hint">词数较多，建议先用搜索缩小范围。</p>
+                  )}
+                  <div className="flashcard" onClick={() => setFlipped((v) => !v)}>
+                    <div className={`fc-inner ${flipped ? 'flipped' : ''}`}>
+                      <div className="fc-face fc-front">
+                        <div className="fc-ja">{activeWord.ja}</div>
+                        {activeWord.kana && <div className="fc-kana">{activeWord.kana}</div>}
+                        <WordSpeech text={activeWord.ja} />
+                        <span className={`word-level lv-${activeWord.level}`}>
+                          {activeWord.level}
+                        </span>
+                        <div className="fc-hint">点击卡片看中文</div>
                       </div>
-                    )}
-                    <div className="fc-hint">点击卡片回正面</div>
+                      <div className="fc-face fc-back">
+                        <MasteryDots level={maxLevelAnywhere(learned, activeWord.ja)} />
+                        <div className="fc-zh">{activeWord.zh}</div>
+                        {activeWord.exJa && (
+                          <div className="fc-ex">
+                            <div className="fc-ex-ja">{activeWord.exJa}</div>
+                            <div className="fc-ex-zh">{activeWord.exZh}</div>
+                          </div>
+                        )}
+                        <div className="fc-hint">点击卡片回正面</div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="fc-actions">
-                <button className="btn btn-ghost" onClick={() => nextCard(false)}>
-                  😥 まだ
-                </button>
-                <button className="btn btn-primary" onClick={() => nextCard(true)}>
-                  ✅ 覚えた
-                </button>
-              </div>
-              <div className="fc-progress">
-                {idx + 1} / {filtered.length}
-              </div>
-            </>
+                  <div className="fc-actions">
+                    <button className="btn btn-ghost" onClick={() => nextCard(false)}>
+                      😥 まだ
+                    </button>
+                    <button className="btn btn-primary" onClick={() => nextCard(true)}>
+                      ✅ 覚えた
+                    </button>
+                  </div>
+                  <div className="fc-progress">
+                    {Math.min(idx, filtered.length - 1) + 1} / {filtered.length}
+                  </div>
+                </>
+              ) : (
+                <EmptyHint text="当前没有单词，换个级别或搜索条件。" />
+              )
+            })()
           ) : (
             <EmptyHint text="当前没有单词，换个级别或搜索条件。" />
           )}
