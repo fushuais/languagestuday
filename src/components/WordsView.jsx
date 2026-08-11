@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import SpeechPlayer from './SpeechPlayer.jsx'
-import { loadScenes, loadLevel, loadChapters, masteredAnywhere } from '../utils/vocab.js'
+import {
+  loadScenes,
+  loadLevel,
+  loadChapters,
+  masteredAnywhere,
+  levelInScene,
+  maxLevelAnywhere,
+  MASTERY_LEVEL,
+} from '../utils/vocab.js'
 import { tap, success } from '../utils/haptics.js'
 
 const LEVELS = ['N5', 'N4', 'N3', 'N2']
@@ -12,6 +20,8 @@ const LEVEL_FILTERS = [
   { id: 'N3', label: 'N3' },
   { id: 'N2', label: 'N2' },
 ]
+
+const LV_LABELS = ['未学', '认识', '熟悉', '已掌握']
 
 function filterWords(words, level) {
   if (level === 'all') return words
@@ -30,6 +40,14 @@ function shuffle(arr) {
 
 const LevelBadge = ({ level }) => <span className={`word-level lv-${level}`}>{level}</span>
 
+const MasteryDots = ({ level }) => (
+  <span className="mastery-dots" title={`熟悉程度：${LV_LABELS[level] || '未学'}`} aria-label={`熟悉程度 ${LV_LABELS[level] || '未学'}`}>
+    {[1, 2, 3].map((i) => (
+      <span key={i} className={`mdot ${level >= i ? 'on' : ''}`} />
+    ))}
+  </span>
+)
+
 const EmptyHint = ({ text }) => (
   <div className="quiz-result">
     <p>{text}</p>
@@ -38,7 +56,18 @@ const EmptyHint = ({ text }) => (
 
 const WordSpeech = ({ text }) => <SpeechPlayer mini text={text} lang="ja" />
 
-export default function WordsView({ learned, onToggleWord }) {
+const SentenceBox = ({ w }) =>
+  w.exJa ? (
+    <div className="word-sentence">
+      <div className="ws-ja">
+        <WordSpeech text={w.exJa} />
+        <span>{w.exJa}</span>
+      </div>
+      {w.exZh && <div className="ws-zh">{w.exZh}</div>}
+    </div>
+  ) : null
+
+export default function WordsView({ learned, onBumpWord }) {
   const [scenes, setScenes] = useState(null)
   const [view, setView] = useState('home')
   const [lastLearned, setLastLearned] = useState(null)
@@ -49,8 +78,8 @@ export default function WordsView({ learned, onToggleWord }) {
       .catch(() => setScenes([]))
   }, [])
 
-  const markLearned = (set, theme, ja) => {
-    onToggleWord(theme, ja)
+  const markLearned = (set, theme, ja, delta = 1) => {
+    onBumpWord(theme, ja, delta)
     setLastLearned({ theme, ja })
   }
 
@@ -72,7 +101,7 @@ export default function WordsView({ learned, onToggleWord }) {
     const totalScene = scenes.reduce((n, s) => n + s.words.length, 0)
     const libTotal = LEVELS.reduce((n, l) => n + LIB_TOTAL[l], 0)
     const sceneMastered = scenes.reduce(
-      (n, s) => n + Object.keys(learned[s.id] || {}).filter((k) => learned[s.id][k]).length,
+      (n, s) => n + Object.keys(learned[s.id] || {}).filter((k) => levelInScene(learned, s.id, k) >= MASTERY_LEVEL).length,
       0,
     )
     return (
@@ -108,7 +137,7 @@ export default function WordsView({ learned, onToggleWord }) {
     )
   }
 
-  if (view === 'library') return <LibraryArea learned={learned} goHome={() => go('home')} />
+  if (view === 'library') return <LibraryArea learned={learned} onBumpWord={onBumpWord} goHome={() => go('home')} />
 
   return (
     <SceneArea
@@ -120,7 +149,6 @@ export default function WordsView({ learned, onToggleWord }) {
     />
   )
 }
-
 function SceneArea({ scenes, learned, markLearned, goHome }) {
   const [sceneId, setSceneId] = useState(null)
   const [mode, setMode] = useState('list')
@@ -136,7 +164,7 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
     [scene, level],
   )
   const learnedInScene = scene
-    ? Object.keys(learned[scene.id] || {}).filter((k) => learned[scene.id][k]).length
+    ? scene.words.filter((w) => levelInScene(learned, scene.id, w.ja) >= MASTERY_LEVEL).length
     : 0
 
   const openScene = (s) => {
@@ -162,7 +190,8 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
   const toggleLearned = (w) => {
     if (!scene) return
     tap()
-    markLearned(learned, scene.id, w.ja)
+    const cur = levelInScene(learned, scene.id, w.ja)
+    markLearned(learned, scene.id, w.ja, cur >= MASTERY_LEVEL ? -1 : 1)
   }
 
   const startQuiz = (lv = level) => {
@@ -188,8 +217,11 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
     setQuiz(next)
     if (correct) {
       success()
-      markLearned(learned, scene.id, item.w.ja)
-    } else tap()
+      markLearned(learned, scene.id, item.w.ja, 1)
+    } else {
+      tap()
+      markLearned(learned, scene.id, item.w.ja, -1)
+    }
   }
 
   const nextQ = () => {
@@ -201,7 +233,8 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
 
   const nextCard = (known) => {
     if (!scene) return
-    if (known) markLearned(learned, scene.id, filtered[cardIdx].ja)
+    if (known) markLearned(learned, scene.id, filtered[cardIdx].ja, 1)
+    else markLearned(learned, scene.id, filtered[cardIdx].ja, -1)
     if (cardIdx + 1 >= filtered.length) {
       setMode('list')
       setCardIdx(0)
@@ -226,8 +259,7 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
         </p>
         <div className="word-scene-grid">
           {scenes.map((s) => {
-            const l = learned[s.id] || {}
-            const count = s.words.filter((w) => l[w.ja]).length
+            const count = s.words.filter((w) => levelInScene(learned, s.id, w.ja) >= MASTERY_LEVEL).length
             const pct = Math.round((count / s.words.length) * 100)
             const chips = LEVELS.map((lv) => ({
               lv,
@@ -321,7 +353,8 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
       {mode === 'list' && (
         <div className="word-list">
           {filtered.map((w) => {
-            const done = !!learned[scene.id]?.[w.ja]
+            const lv = levelInScene(learned, scene.id, w.ja)
+            const done = lv >= MASTERY_LEVEL
             return (
               <div key={w.ja} className={`word-row ${done ? 'learned' : ''}`}>
                 <div className="word-main">
@@ -330,11 +363,13 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
                 </div>
                 <LevelBadge level={w.level} />
                 <span className="word-zh">{w.zh}</span>
+                <SentenceBox w={w} />
+                <MasteryDots level={lv} />
                 <WordSpeech text={w.ja} />
                 <button
                   className={`mini-mark ${done ? 'on' : ''}`}
                   onClick={() => toggleLearned(w)}
-                  title={done ? '取消已掌握' : '标记已掌握'}
+                  title={done ? '取消已掌握（降为熟悉）' : '标记掌握（需连续答对3次）'}
                 >
                   ✅
                 </button>
@@ -362,6 +397,7 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
                     <div className="fc-hint">点击卡片看中文</div>
                   </div>
                   <div className="fc-face fc-back">
+                    <MasteryDots level={levelInScene(learned, scene.id, filtered[cardIdx].ja)} />
                     <div className="fc-zh">{filtered[cardIdx].zh}</div>
                     {filtered[cardIdx].exJa && (
                       <div className="fc-ex">
@@ -457,7 +493,7 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
   )
 }
 
-function LibraryArea({ learned, goHome }) {
+function LibraryArea({ learned, onBumpWord, goHome }) {
   const [bank, setBank] = useState('N5')
   const [banks, setBanks] = useState({})
   const [chapters, setChapters] = useState([])
@@ -531,6 +567,7 @@ function LibraryArea({ learned, goHome }) {
 
   const rowOf = (w) => {
     const mastered = masteredAnywhere(learned, w.ja)
+    const lv = maxLevelAnywhere(learned, w.ja)
     return (
       <div key={w.ja} className={`word-row ${mastered ? 'learned' : ''}`}>
         <div className="word-main">
@@ -539,9 +576,11 @@ function LibraryArea({ learned, goHome }) {
         </div>
         <LevelBadge level={w.level} />
         <span className="word-zh">{w.zh}</span>
+        <SentenceBox w={w} />
+        <MasteryDots level={lv} />
         <WordSpeech text={w.ja} />
         {mastered && (
-          <span className="mini-mark on" title="已在场景中掌握">
+          <span className="mini-mark on" title="已掌握（熟悉度满级）">
             ✅
           </span>
         )}
@@ -609,8 +648,13 @@ function LibraryArea({ learned, goHome }) {
     const correct = item.options[i] === item.w.zh
     const next = { ...quiz, answered: true, picked: i, score: quiz.score + (correct ? 1 : 0) }
     setQuiz(next)
-    if (correct) success()
-    else tap()
+    if (correct) {
+      success()
+      onBumpWord(item.w.scene || 'other', item.w.ja, 1)
+    } else {
+      tap()
+      onBumpWord(item.w.scene || 'other', item.w.ja, -1)
+    }
   }
 
   const nextQ = () => {
@@ -620,7 +664,10 @@ function LibraryArea({ learned, goHome }) {
     else setQuiz({ ...quiz, idx: quiz.idx + 1, answered: false, picked: null })
   }
 
-  const nextCard = () => {
+  const nextCard = (known) => {
+    if (!filtered[idx]) return
+    if (known) onBumpWord(filtered[idx].scene || 'other', filtered[idx].ja, 1)
+    else onBumpWord(filtered[idx].scene || 'other', filtered[idx].ja, -1)
     if (idx + 1 >= filtered.length) {
       setMode('list')
       setIdx(0)
@@ -768,6 +815,7 @@ function LibraryArea({ learned, goHome }) {
                     <div className="fc-hint">点击卡片看中文</div>
                   </div>
                   <div className="fc-face fc-back">
+                    <MasteryDots level={maxLevelAnywhere(learned, filtered[idx].ja)} />
                     <div className="fc-zh">{filtered[idx].zh}</div>
                     {filtered[idx].exJa && (
                       <div className="fc-ex">
@@ -780,11 +828,11 @@ function LibraryArea({ learned, goHome }) {
                 </div>
               </div>
               <div className="fc-actions">
-                <button className="btn btn-ghost" onClick={() => nextCard()}>
-                  ⏭ 跳过
+                <button className="btn btn-ghost" onClick={() => nextCard(false)}>
+                  😥 まだ
                 </button>
-                <button className="btn btn-primary" onClick={() => nextCard()}>
-                  下一张 →
+                <button className="btn btn-primary" onClick={() => nextCard(true)}>
+                  ✅ 覚えた
                 </button>
               </div>
               <div className="fc-progress">

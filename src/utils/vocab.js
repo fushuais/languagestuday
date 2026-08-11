@@ -34,9 +34,29 @@ export function loadChapters() {
   })
 }
 
-export function masteredAnywhere(learned, ja) {
+export const MASTERY_LEVEL = 3
+
+export function normLevel(v) {
+  if (typeof v === 'number') return Math.min(MASTERY_LEVEL, Math.max(0, v))
+  return v ? MASTERY_LEVEL : 0
+}
+
+export function levelInScene(learned, sceneId, ja) {
+  if (!learned || !learned[sceneId]) return 0
+  return normLevel(learned[sceneId][ja])
+}
+
+export function maxLevelAnywhere(learned, ja) {
+  if (!learned) return 0
+  let max = 0
   for (const k of Object.keys(learned)) {
-    if (learned[k] && learned[k][ja]) return true
+    if (!learned[k]) continue
+    const lv = normLevel(learned[k][ja])
+    if (lv > max) max = lv
   }
-  return false
+  return max
+}
+
+export function masteredAnywhere(learned, ja) {
+  return maxLevelAnywhere(learned, ja) >= MASTERY_LEVEL
 }

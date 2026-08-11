@@ -3600,7 +3600,8 @@ select:focus-visible {
 .word-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding: 12px 14px;
   border-radius: 14px;
   background: var(--card);
@@ -3609,7 +3610,7 @@ select:focus-visible {
 }
 
 .word-row.learned {
-  opacity: 0.6;
+  opacity: 0.7;
   border-color: color-mix(in srgb, var(--ok) 40%, var(--border));
 }
 
@@ -3636,6 +3637,54 @@ select:focus-visible {
   font-size: 13px;
   color: var(--text-dim);
   text-align: right;
+}
+
+/* 造句 */
+.word-sentence {
+  width: 100%;
+  flex-basis: 100%;
+  padding: 8px 10px;
+  margin-top: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--card));
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ws-ja {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ws-zh {
+  margin-top: 2px;
+  color: var(--text-dim);
+}
+
+/* 熟悉度圆点 */
+.mastery-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.mdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong, color-mix(in srgb, var(--border) 70%, transparent));
+  transition: background-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.mdot.on {
+  background: var(--ok);
+  transform: scale(1.1);
 }
 
 /* flashcards */

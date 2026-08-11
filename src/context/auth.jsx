@@ -38,7 +38,21 @@ export function mergeCloudState(localState, cloudState, now = Date.now()) {
   merged.profile = { ...(local.profile || {}), ...(cloud.profile || {}) }
   merged.overrides = { ...(local.overrides || {}), ...(cloud.overrides || {}) }
   merged.topicStates = { ...(local.topicStates || {}), ...(cloud.topicStates || {}) }
-  merged.learnedWords = { ...(local.learnedWords || {}), ...(cloud.learnedWords || {}) }
+  const normLv = (v) => {
+    if (typeof v === 'number') return Math.min(3, Math.max(0, v))
+    return v ? 3 : 0
+  }
+  const localLearned = local.learnedWords || {}
+  const cloudLearned = cloud.learnedWords || {}
+  merged.learnedWords = {}
+  for (const sid of new Set([...Object.keys(localLearned), ...Object.keys(cloudLearned)])) {
+    const a = localLearned[sid] || {}
+    const b = cloudLearned[sid] || {}
+    merged.learnedWords[sid] = {}
+    for (const ja of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      merged.learnedWords[sid][ja] = Math.max(normLv(a[ja]), normLv(b[ja]))
+    }
+  }
 
   const lsrc = local.syncedAt
   const csyn = cloud.syncedAt

@@ -30,6 +30,7 @@ import {
 import { loadProfile, saveProfile } from './utils/profile.js'
 import { setSpeechLang, stopSpeech } from './utils/speech.js'
 import { tap } from './utils/haptics.js'
+import { normLevel } from './utils/vocab.js'
 
 const SentenceBank = lazy(() => import('./components/SentenceBank.jsx'))
 const HistoryView = lazy(() => import('./components/HistoryView.jsx'))
@@ -277,10 +278,11 @@ export default function App() {
     window.setTimeout(() => root.classList.remove('theme-anim'), 450)
   }
 
-  const toggleWord = useCallback((sceneId, ja) => {
+  const bumpWord = useCallback((sceneId, ja, delta) => {
     setLearnedWords((prev) => {
       const cur = prev[sceneId] || {}
-      const next = { ...prev, [sceneId]: { ...cur, [ja]: !cur[ja] } }
+      const nextLevel = Math.min(3, Math.max(0, normLevel(cur[ja]) + delta))
+      const next = { ...prev, [sceneId]: { ...cur, [ja]: nextLevel } }
       saveWordsProgress(next)
       return next
     })
@@ -564,7 +566,7 @@ export default function App() {
 
         {view === 'words' && (
           <Suspense fallback={<div className="view-fallback" />}>
-            <WordsView learned={learnedWords} onToggleWord={toggleWord} />
+            <WordsView learned={learnedWords} onBumpWord={bumpWord} />
           </Suspense>
         )}
 
