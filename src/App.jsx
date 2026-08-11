@@ -69,6 +69,7 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [practiceActive, setPracticeActive] = useState(false)
 
   const isEn = lang === 'en'
@@ -304,6 +305,17 @@ export default function App() {
             )}
           </div>
           <button
+            className="menu-btn"
+            onClick={() => setShowMenu((v) => !v)}
+            title="菜单"
+            aria-label="菜单"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M3 6h18M3 12h18M3 18h18" />
+            </svg>
+          </button>
+          <div className="header-inline-actions">
+          <button
             className="help-btn"
             onClick={() => setShowAbout(true)}
             title="关于 / 项目介绍"
@@ -361,6 +373,7 @@ export default function App() {
             </svg>
           </button>
           <EdgeStatusBadge />
+          </div>
         </div>
       </header>
 
@@ -439,6 +452,71 @@ export default function App() {
         {showSettings && <Settings lang={lang} onClose={() => setShowSettings(false)} />}
       </Suspense>
       {showLogin && <LoginView onClose={() => setShowLogin(false)} />}
+
+      {showMenu && (
+        <div className="menu-overlay" onClick={() => setShowMenu(false)}>
+          <div className="menu-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="menu-head">
+              <div className="settings-title">菜单</div>
+              <button className="settings-close" onClick={() => setShowMenu(false)} aria-label="关闭菜单">
+                ✕
+              </button>
+            </div>
+
+            <button
+              className="menu-item"
+              onClick={() => { setShowMenu(false); toggleTheme(); }}
+            >
+              <span>主题</span>
+              <span className="menu-item-value">{theme === 'light' ? '浅色' : '深色'}</span>
+            </button>
+
+            {user ? (
+              <button
+                className="menu-item"
+                onClick={() => {
+                  setShowMenu(false)
+                  if (window.confirm(`退出登录 ${user.username} 吗？退出后数据将留在云端。`)) {
+                    logout()
+                  }
+                }}
+              >
+                <span>账号</span>
+                <span className="menu-item-value">{user.username} · 退出</span>
+              </button>
+            ) : (
+              <button
+                className="menu-item"
+                onClick={() => { setShowMenu(false); setShowLogin(true); }}
+              >
+                <span>账号</span>
+                <span className="menu-item-value">登录 / 注册</span>
+              </button>
+            )}
+
+            <button
+              className="menu-item"
+              onClick={() => { setShowMenu(false); setShowSettings(true); }}
+            >
+              <span>设置</span>
+              <span className="menu-item-value">语音 / 反馈</span>
+            </button>
+
+            <button
+              className="menu-item"
+              onClick={() => { setShowMenu(false); setShowAbout(true); }}
+            >
+              <span>关于</span>
+              <span className="menu-item-value">项目介绍</span>
+            </button>
+
+            <div className="menu-item menu-item-static">
+              <span>朗读引擎</span>
+              <span className="menu-item-value"><EdgeStatusBadge /></span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
