@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import SpeechPlayer from './SpeechPlayer.jsx'
-import { loadScenes, loadLevel, masteredAnywhere } from '../utils/vocab.js'
+import { loadScenes, loadLevel, loadChapters, masteredAnywhere } from '../utils/vocab.js'
 import { tap, success } from '../utils/haptics.js'
 
 const KEY = 'nihongo-words-v1'
@@ -481,6 +481,8 @@ function SceneArea({ scenes, learned, markLearned, goHome }) {
 function LibraryArea({ learned, goHome }) {
   const [bank, setBank] = useState('N5')
   const [banks, setBanks] = useState({})
+  const [chapters, setChapters] = useState([])
+  const [chapter, setChapter] = useState('all')
   const [search, setSearch] = useState('')
   const [showCount, setShowCount] = useState(100)
   const [mode, setMode] = useState('list')
@@ -489,6 +491,13 @@ function LibraryArea({ learned, goHome }) {
   const [quiz, setQuiz] = useState(null)
 
   const words = useMemo(() => banks[bank] || [], [banks, bank])
+  const chapterMap = useMemo(() => Object.fromEntries(chapters.map((c) => [c.id, c])), [chapters])
+
+  useEffect(() => {
+    loadChapters()
+      .then(setChapters)
+      .catch(() => setChapters([]))
+  }, [])
 
   const ensure = useCallback((lv) => {
     if (banks[lv]) return Promise.resolve(banks[lv])
@@ -509,9 +518,11 @@ function LibraryArea({ learned, goHome }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return words
-    return words.filter((w) => w.ja.includes(q) || (w.kana && w.kana.includes(q)) || w.zh.includes(q))
-  }, [words, search])
+    let list = words
+    if (q) list = words.filter((w) => w.ja.includes(q) || (w.kana && w.kana.includes(q)) || w.zh.includes(q))
+    if (chapter !== 'all') list = list.filter((w) => (w.scene || 'other') === chapter)
+    return list
+  }, [words, search, chapter])
 
   const visible = filtered.slice(0, showCount)
 
@@ -523,7 +534,78 @@ function LibraryArea({ learned, goHome }) {
     setSearch('')
     setShowCount(100)
     setMode('list')
+    setChapter('all')
     setQuiz(null)
+  }
+
+  const changeChapter = (id) => {
+    if (id === chapter) return
+    tap()
+    setChapter(id)
+    setSearch('')
+    setShowCount(100)
+    setMode('list')
+    setQuiz(null)
+    setIdx(0)
+    setFlipped(false)
+  }
+
+  const rowOf = (w) => {
+    const mastered = masteredAnywhere(learned, w.ja)
+    return (
+      <div key={w.ja} className={`word-row ${mastered ? 'learned' : ''}`}>
+        <div className="word-main">
+          <span className="word-ja">{w.ja}</span>
+          {w.kana && <span className="word-kana">{w.kana}</span>}
+        </div>
+        <LevelBadge level={w.level} />
+        <span className="word-zh">{w.zh}</span>
+        <WordSpeech text={w.ja} />
+        {mastered && (
+          <span className="mini-mark on" title="已在场景中掌握">
+            ✅
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  const chapterHead = (id, count) => {
+    const ch = chapterMap[id]
+    return (
+      <div className="word-chapter-head">
+        <span className="wch-emoji">{ch ? ch.emoji : '⚪'}</span>
+        <span className="wch-title">
+          {ch ? ch.title : '其他'}
+          <small>{ch ? ch.zh : '其他分类'}</small>
+        </span>
+        <span className="wch-count">{count}</span>
+      </div>
+    )
+  }
+
+  const listBody = () => {
+    if (chapter !== 'all') {
+      return (
+        <>
+          {chapterHead(chapter, filtered.length)}
+          {visible.map(rowOf)}
+        </>
+      )
+    }
+    const byScene = {}
+    for (const w of visible) {
+      const id = w.scene || 'other'
+      ;(byScene[id] = byScene[id] || []).push(w)
+    }
+    const order = chapters.map((c) => c.id).filter((id) => byScene[id])
+    for (const id of Object.keys(byScene)) if (!order.includes(id)) order.push(id)
+    return order.map((id) => (
+      <div key={id}>
+        {chapterHead(id, byScene[id].length)}
+        {byScene[id].map(rowOf)}
+      </div>
+    ))
   }
 
   const startQuiz = () => {
@@ -597,6 +679,34 @@ function LibraryArea({ learned, goHome }) {
         ))}
       </div>
 
+      <div className="word-chapter-filter" role="tablist" aria-label="主题章节筛选">
+        <button
+          role="tab"
+          aria-selected={chapter === 'all'}
+          className={chapter === 'all' ? 'active' : ''}
+          onClick={() => changeChapter('all')}
+        >
+          全部
+          <span className="wch-badge">{words.length}</span>
+        </button>
+        {chapters.map((c) => {
+          const n = words.filter((w) => (w.scene || 'other') === c.id).length
+          if (!n) return null
+          return (
+            <button
+              key={c.id}
+              role="tab"
+              aria-selected={chapter === c.id}
+              className={chapter === c.id ? 'active' : ''}
+              onClick={() => changeChapter(c.id)}
+            >
+              {c.emoji} {c.title}
+              <span className="wch-badge">{n}</span>
+            </button>
+          )
+        })}
+      </div>
+
       <div className="word-search">
         <input
           value={search}
@@ -645,25 +755,7 @@ function LibraryArea({ learned, goHome }) {
 
       {mode === 'list' && (
         <div className="word-list">
-          {visible.map((w) => {
-            const mastered = masteredAnywhere(learned, w.ja)
-            return (
-              <div key={w.ja} className={`word-row ${mastered ? 'learned' : ''}`}>
-                <div className="word-main">
-                  <span className="word-ja">{w.ja}</span>
-                  {w.kana && <span className="word-kana">{w.kana}</span>}
-                </div>
-                <LevelBadge level={w.level} />
-                <span className="word-zh">{w.zh}</span>
-                <WordSpeech text={w.ja} />
-                {mastered && (
-                  <span className="mini-mark on" title="已在场景中掌握">
-                    ✅
-                  </span>
-                )}
-              </div>
-            )
-          })}
+          {listBody()}
           {!visible.length && (
             <EmptyHint text={search ? '没有匹配的单词，换个关键词。' : '加载中…'} />
           )}

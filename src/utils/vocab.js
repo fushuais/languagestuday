@@ -1,4 +1,5 @@
 let sceneCache = null
+let chapterCache = null
 const levelCache = {}
 
 function fetchJson(url) {
@@ -21,6 +22,14 @@ export function loadLevel(level) {
   if (levelCache[key]) return Promise.resolve(levelCache[key])
   return fetchJson(`./data/vocab-${key}.json`).then((d) => {
     levelCache[key] = d
+    return d
+  })
+}
+
+export function loadChapters() {
+  if (chapterCache) return Promise.resolve(chapterCache)
+  return fetchJson('./data/chapters.json').then((d) => {
+    chapterCache = d
     return d
   })
 }
