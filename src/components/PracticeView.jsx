@@ -677,20 +677,22 @@ export default function PracticeView({ topic, categoryLabel, levelLabel, profile
         </div>
       </aside>
 
-      <div className="mobile-run-bar">
-        <button className="mrb-count" onClick={countSentence}>
-          🗣 話した！<span>＋1句</span>
-        </button>
-        <button className="btn mrb-btn" onClick={running ? pause : resume}>
-          {running ? '⏸' : '▶'}
-        </button>
-        <button className="btn mrb-btn" onClick={showHint}>
-          💡
-        </button>
-        <button className="btn mrb-btn mrb-end" onClick={() => finishSession(true)} title="終了して記録">
-          終
-        </button>
-      </div>
+      {phase === 'run' && (
+        <div className="mobile-run-bar">
+          <button className="mrb-count" onClick={countSentence}>
+            🗣 話した！<span>＋1句</span>
+          </button>
+          <button className="btn mrb-btn" onClick={running ? pause : resume}>
+            {running ? '⏸' : '▶'}
+          </button>
+          <button className="btn mrb-btn" onClick={showHint}>
+            💡
+          </button>
+          <button className="btn mrb-btn mrb-end" onClick={() => finishSession(true)} title="終了して記録">
+            終
+          </button>
+        </div>
+      )}
     </div>
   )
 }

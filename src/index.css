@@ -2047,10 +2047,12 @@ select:focus-visible {
   .brand p {
     display: none;
   }
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
+  .brand .torii {
+    width: 30px;
+    height: 30px;
+  }
+  .brand h1 {
+    font-size: 16px;
   }
   .tabs {
     width: 100%;
@@ -2058,6 +2060,16 @@ select:focus-visible {
   .tab-btn {
     flex: 1;
     text-align: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand h1 {
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .global-search {
+    font-size: 13px;
   }
 }
 
@@ -2318,6 +2330,17 @@ select:focus-visible {
 
   .header {
     padding-top: calc(14px + env(safe-area-inset-top));
+  }
+}
+
+@media (max-width: 720px) {
+  .tabs {
+    transition: transform 0.3s var(--spring-out), opacity 0.3s ease;
+  }
+  .tabs-hidden {
+    transform: translateY(calc(-100% - 24px));
+    opacity: 0;
+    pointer-events: none;
   }
 }
 
@@ -3381,7 +3404,7 @@ select:focus-visible {
     border-radius: 14px;
   }
 
-  .practice-layout {
+  .practice-layout:has(.mobile-run-bar) {
     padding-bottom: 84px;
   }
 

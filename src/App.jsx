@@ -322,6 +322,8 @@ export default function App() {
     }
     tap()
     setView(next)
+    window.scrollTo(0, 0)
+    window.dispatchEvent(new Event('viewchange'))
   }
 
   const pickTopic = (t) => {

@@ -7,6 +7,7 @@ export default function SegmentedTabs({ items, active, onChange }) {
   const btnRefs = useRef([])
   const [thumb, setThumb] = useState({ left: 0, width: 0 })
   const [ready, setReady] = useState(false)
+  const [hidden, setHidden] = useState(false)
 
   const update = () => {
     const idx = Math.max(0, items.findIndex((it) => it.id === active))
@@ -35,8 +36,39 @@ export default function SegmentedTabs({ items, active, onChange }) {
     return () => cancelAnimationFrame(raf)
   }, [active, items]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 720px)')
+    if (!mq.matches) return undefined
+    let lastY = window.scrollY
+    const onScroll = throttle(() => {
+      const y = window.scrollY
+      const down = y > lastY
+      lastY = y
+      if (y < 48) {
+        setHidden(false)
+      } else {
+        setHidden(down)
+      }
+    }, 100)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    const reveal = () => {
+      lastY = window.scrollY
+      setHidden(false)
+    }
+    window.addEventListener('viewchange', reveal)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('viewchange', reveal)
+    }
+  }, [])
+
   return (
-    <nav className="tabs" ref={listRef} role="tablist" aria-label="view navigation">
+    <nav
+      className={`tabs ${hidden ? 'tabs-hidden' : ''}`}
+      ref={listRef}
+      role="tablist"
+      aria-label="view navigation"
+    >
       <span
         className={`tab-thumb ${ready ? 'anim' : ''}`}
         style={{ left: thumb.left, width: thumb.width }}
