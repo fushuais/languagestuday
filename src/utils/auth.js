@@ -1,4 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+const PROD_API = 'https://java-employee-intro.onrender.com'
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  (import.meta.env.PROD ? PROD_API : 'http://localhost:8080')
 const TOKEN_KEY = 'langstudy-auth-token-v1'
 const USER_KEY = 'langstudy-auth-user-v1'
 
