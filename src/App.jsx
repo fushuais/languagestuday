@@ -7,7 +7,9 @@ import SegmentedTabs from './components/SegmentedTabs.jsx'
 import InterviewView from './components/InterviewView.jsx'
 import Onboarding, { shouldOnboard } from './components/Onboarding.jsx'
 import EdgeStatusBadge from './components/EdgeStatusBadge.jsx'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useAuth } from './context/auth.jsx'
+import LoginView from './components/LoginView.jsx'
 import {
   loadHistory,
   saveHistory,
@@ -51,6 +53,7 @@ const VIEWS_EN = [
 ]
 
 export default function App() {
+  const { user, logout, applyRemote, pushLocal } = useAuth()
   const [lang, setLang] = useState(loadLang)
   const [theme, setTheme] = useState(loadTheme)
   const [switching, setSwitching] = useState(false)
@@ -65,6 +68,7 @@ export default function App() {
   const [showOnboard, setShowOnboard] = useState(() => shouldOnboard())
   const [showAbout, setShowAbout] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
   const [practiceActive, setPracticeActive] = useState(false)
 
   const isEn = lang === 'en'
@@ -83,6 +87,46 @@ export default function App() {
     const meta = document.querySelector('meta[name="theme-color"]')
     if (meta) meta.setAttribute('content', theme === 'light' ? '#f2f6fa' : '#0f1720')
   }, [theme])
+
+  const syncIn = useRef(false)
+
+  useEffect(() => {
+    if (!user || syncIn.current) return
+    syncIn.current = true
+    applyRemote()
+      .then((cloud) => {
+        if (!cloud) return
+        setHistory((prev) =>
+          (cloud.history?.length ?? 0) > prev.length ? cloud.history : prev,
+        )
+        setProfile((prev) => ({ ...prev, ...(cloud.profile ?? {}) }))
+        setOverrides((prev) => ({ ...prev, ...(cloud.overrides ?? {}) }))
+        setTopicStates((prev) => ({ ...prev, ...(cloud.topicStates ?? {}) }))
+        if (cloud.goal) setGoal(cloud.goal)
+      })
+      .finally(() => {
+        syncIn.current = false
+      })
+  }, [user, applyRemote])
+
+  const lastPushRef = useRef('')
+
+  useEffect(() => {
+    if (!user) return
+    const snapshot = JSON.stringify({ profile, overrides, topicStates, goal })
+    if (snapshot === lastPushRef.current) return
+    lastPushRef.current = snapshot
+    const timer = setTimeout(() => {
+      pushLocal({
+        history,
+        profile,
+        overrides,
+        topicStates,
+        goal,
+      })
+    }, 1200)
+    return () => clearTimeout(timer)
+  }, [user, history, profile, overrides, topicStates, goal, pushLocal])
 
   const toggleTheme = () => {
     tap()
@@ -266,6 +310,28 @@ export default function App() {
           >
             ?
           </button>
+          {user ? (
+            <>
+              <button
+                className="account-btn"
+                onClick={() => { if (window.confirm(`退出登录 ${user.username} 吗？退出后数据将留在云端。`)) { logout(); } }}
+                title={`已登录 ${user.username}，点击退出`}
+                aria-label="退出登录"
+              >
+                {user.username}
+              </button>
+              <span className="sync-dot" title="已登录 · 数据云同步" aria-hidden="true" />
+            </>
+          ) : (
+            <button
+              className="account-btn"
+              onClick={() => setShowLogin(true)}
+              title="登录 / 注册（游客可跳过）"
+              aria-label="登录注册"
+            >
+              登录
+            </button>
+          )}
           <button
             className="theme-btn"
             onClick={toggleTheme}
@@ -372,6 +438,7 @@ export default function App() {
         {showAbout && <About onClose={() => setShowAbout(false)} />}
         {showSettings && <Settings lang={lang} onClose={() => setShowSettings(false)} />}
       </Suspense>
+      {showLogin && <LoginView onClose={() => setShowLogin(false)} />}
     </div>
   )
 }
