@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import SpeechPlayer from './SpeechPlayer.jsx'
+import ReadingView from './ReadingView.jsx'
 import {
   loadScenes,
   loadLevel,
@@ -106,9 +107,9 @@ export default function WordsView({ learned, onBumpWord }) {
     )
     return (
       <section>
-        <h2 className="section-title">単語帳</h2>
+        <h2 className="section-title">単語・読解</h2>
         <p className="section-sub">
-          海量 JLPT 词库（N5–N2）按级别全量收录，可场景精选或全词库浏览复习。
+          海量 JLPT 词库（N5–N2）按级别全量收录，可场景精选或全词库浏览复习；附 N4–N2 阅读与考试作文模板。
         </p>
         <div className="word-entry-grid">
           <button className="word-entry-card" onClick={() => go('scenes')}>
@@ -129,6 +130,14 @@ export default function WordsView({ learned, onBumpWord }) {
             </span>
             <span className="we-count">{libTotal} 词</span>
           </button>
+          <button className="word-entry-card" onClick={() => go('reading')}>
+            <span className="we-emoji">🗞️</span>
+            <span className="we-title">
+              読解・作文
+              <small>N4–N2 阅读文章 · 考试作文模板</small>
+            </span>
+            <span className="we-count">阅读 + 写作</span>
+          </button>
         </div>
         <p className="word-source">
           词库来源：开源 JLPT 牌组 tcf245（eggrolls-JLPT10k v3.5）· CC BY-NC 4.0
@@ -138,6 +147,8 @@ export default function WordsView({ learned, onBumpWord }) {
   }
 
   if (view === 'library') return <LibraryArea learned={learned} onBumpWord={onBumpWord} goHome={() => go('home')} />
+
+  if (view === 'reading') return <ReadingView />
 
   return (
     <SceneArea
