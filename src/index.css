@@ -4225,6 +4225,10 @@ select:focus-visible {
   padding: 0;
 }
 
+.menu-closing {
+  pointer-events: none;
+}
+
 .menu-panel {
   width: 100%;
   background: var(--card);
@@ -4234,6 +4238,21 @@ select:focus-visible {
   padding: 18px 18px calc(22px + env(safe-area-inset-bottom));
   box-shadow: var(--shadow-3);
   animation: about-in 0.4s var(--spring);
+}
+
+.menu-closing .menu-panel {
+  animation: menu-out 0.26s ease forwards;
+}
+
+@keyframes menu-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(24px);
+    opacity: 0;
+  }
 }
 
 .menu-head {
@@ -4285,6 +4304,22 @@ select:focus-visible {
   align-items: center;
   gap: 6px;
   max-width: 60%;
+}
+
+.menu-item-danger {
+  border-color: #e63946;
+  background: rgba(230, 57, 70, 0.12);
+  color: #e63946;
+}
+
+.menu-item-danger:hover {
+  border-color: #e63946;
+  background: rgba(230, 57, 70, 0.2);
+}
+
+.item-sep {
+  margin-top: -4px;
+  border-style: dashed;
 }
 
 

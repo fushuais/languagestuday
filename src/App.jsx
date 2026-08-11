@@ -7,7 +7,7 @@ import SegmentedTabs from './components/SegmentedTabs.jsx'
 import InterviewView from './components/InterviewView.jsx'
 import Onboarding, { shouldOnboard } from './components/Onboarding.jsx'
 import EdgeStatusBadge from './components/EdgeStatusBadge.jsx'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from './context/auth.jsx'
 import LoginView from './components/LoginView.jsx'
 import {
@@ -70,7 +70,33 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [menuClosing, setMenuClosing] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   const [practiceActive, setPracticeActive] = useState(false)
+
+  const closeMenu = useCallback(() => {
+    if (menuClosing) return
+    setMenuClosing(true)
+    setConfirmLogout(false)
+    window.setTimeout(() => {
+      setShowMenu(false)
+      setMenuClosing(false)
+    }, 260)
+  }, [menuClosing])
+
+  useEffect(() => {
+    if (!showMenu) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeMenu()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [showMenu, closeMenu])
 
   const isEn = lang === 'en'
   const topicList = isEn ? EN_TOPICS : JA_TOPICS
@@ -454,40 +480,77 @@ export default function App() {
       {showLogin && <LoginView onClose={() => setShowLogin(false)} />}
 
       {showMenu && (
-        <div className="menu-overlay" onClick={() => setShowMenu(false)}>
+        <div
+          className={`menu-overlay ${menuClosing ? 'menu-closing' : ''}`}
+          onClick={closeMenu}
+        >
           <div className="menu-panel" onClick={(e) => e.stopPropagation()}>
             <div className="menu-head">
               <div className="settings-title">菜单</div>
-              <button className="settings-close" onClick={() => setShowMenu(false)} aria-label="关闭菜单">
+              <button className="settings-close" onClick={closeMenu} aria-label="关闭菜单">
                 ✕
               </button>
             </div>
 
             <button
               className="menu-item"
-              onClick={() => { setShowMenu(false); toggleTheme(); }}
+              onClick={() => {
+                tap()
+                toggleTheme()
+              }}
+              aria-live="polite"
             >
               <span>主题</span>
               <span className="menu-item-value">{theme === 'light' ? '浅色' : '深色'}</span>
             </button>
 
             {user ? (
-              <button
-                className="menu-item"
-                onClick={() => {
-                  setShowMenu(false)
-                  if (window.confirm(`退出登录 ${user.username} 吗？退出后数据将留在云端。`)) {
+              confirmLogout ? (
+                <button
+                  className="menu-item menu-item-danger"
+                  onClick={() => {
+                    tap()
                     logout()
-                  }
-                }}
-              >
-                <span>账号</span>
-                <span className="menu-item-value">{user.username} · 退出</span>
-              </button>
+                    setShowMenu(false)
+                    setConfirmLogout(false)
+                    setMenuClosing(false)
+                  }}
+                >
+                  <span>确认退出？</span>
+                  <span className="menu-item-value">退出后数据将留在云端</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="menu-item"
+                    onClick={() => {
+                      tap()
+                      setConfirmLogout(true)
+                    }}
+                  >
+                    <span>账号：{user.username}</span>
+                    <span className="menu-item-value">退出登录</span>
+                  </button>
+                  <button
+                    className="menu-item item-sep"
+                    onClick={() => {
+                      tap()
+                      closeMenu()
+                    }}
+                  >
+                    <span>取消</span>
+                    <span className="menu-item-value">继续使用</span>
+                  </button>
+                </>
+              )
             ) : (
               <button
                 className="menu-item"
-                onClick={() => { setShowMenu(false); setShowLogin(true); }}
+                onClick={() => {
+                  tap()
+                  closeMenu()
+                  window.setTimeout(() => setShowLogin(true), 280)
+                }}
               >
                 <span>账号</span>
                 <span className="menu-item-value">登录 / 注册</span>
@@ -496,7 +559,11 @@ export default function App() {
 
             <button
               className="menu-item"
-              onClick={() => { setShowMenu(false); setShowSettings(true); }}
+              onClick={() => {
+                tap()
+                closeMenu()
+                window.setTimeout(() => setShowSettings(true), 280)
+              }}
             >
               <span>设置</span>
               <span className="menu-item-value">语音 / 反馈</span>
@@ -504,7 +571,11 @@ export default function App() {
 
             <button
               className="menu-item"
-              onClick={() => { setShowMenu(false); setShowAbout(true); }}
+              onClick={() => {
+                tap()
+                closeMenu()
+                window.setTimeout(() => setShowAbout(true), 280)
+              }}
             >
               <span>关于</span>
               <span className="menu-item-value">项目介绍</span>
