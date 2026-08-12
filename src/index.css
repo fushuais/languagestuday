@@ -2278,6 +2278,11 @@ select:focus-visible {
   }
 }
 
+/* header secondary actions are consolidated into the hamburger menu on all devices */
+.header-inline-actions {
+  display: none;
+}
+
 /* ---------- language switch ---------- */
 .lang-switch {
   display: flex;
@@ -4400,7 +4405,7 @@ select:focus-visible {
   border: 1px solid var(--glass-border);
   background: var(--card);
   color: var(--text-dim);
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
