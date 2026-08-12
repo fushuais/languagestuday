@@ -160,6 +160,15 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
 
   const visible = filtered.slice(0, showCount)
 
+  const chapterCounts = useMemo(() => {
+    const counts = new Map()
+    for (const w of words) {
+      const id = w.scene || 'other'
+      counts.set(id, (counts.get(id) || 0) + 1)
+    }
+    return counts
+  }, [words])
+
   const changeBank = (lv) => {
     if (lv === bank) return
     tap()
@@ -335,7 +344,7 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
           <span className="wch-badge">{words.length}</span>
         </button>
         {chapters.map((c) => {
-          const n = words.filter((w) => (w.scene || 'other') === c.id).length
+          const n = chapterCounts.get(c.id) || 0
           if (!n) return null
           return (
             <button

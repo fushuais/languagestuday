@@ -3715,7 +3715,14 @@ select:focus-visible {
   gap: 8px;
 }
 
+.word-list > div {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
+}
+
 .word-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
