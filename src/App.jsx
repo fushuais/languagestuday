@@ -7,7 +7,7 @@ import SegmentedTabs from './components/SegmentedTabs.jsx'
 import InterviewView from './components/InterviewView.jsx'
 import Onboarding, { shouldOnboard } from './components/Onboarding.jsx'
 import EdgeStatusBadge from './components/EdgeStatusBadge.jsx'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import { mergeCloudState, useAuth } from './context/auth.jsx'
 import { loadSpeechPrefs, saveSpeechPrefs } from './utils/storage.js'
 import { setSoundEnabled, soundEnabledValue } from './utils/sound.js'
@@ -333,7 +333,7 @@ export default function App() {
       setPracticeActive(false)
     }
     tap()
-    setView(next)
+    startTransition(() => setView(next))
     window.scrollTo(0, 0)
     window.dispatchEvent(new Event('viewchange'))
   }
