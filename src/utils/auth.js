@@ -44,15 +44,33 @@ export function clearSession() {
   }
 }
 
-async function api(path, options = {}) {
+const DEFAULT_TIMEOUT_MS = 60000
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function api(path, options = {}, attempt = 0) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) }
   const token = loadToken()
   if (token) headers.Authorization = `Bearer ${token}`
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
   let res
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers })
-  } catch {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers, signal: controller.signal })
+  } catch (err) {
+    clearTimeout(timer)
+    if (err && err.name === 'AbortError') {
+      throw new Error('服务器响应超时。免费云端实例若在冷启动，通常需 30–60 秒，请稍后再试。')
+    }
     throw new Error('无法连接服务器，请检查网络后重试')
+  }
+  clearTimeout(timer)
+  if ((res.status === 502 || res.status === 503) && attempt < 2) {
+    // onrender 免费实例冷启动期间可能短暂返回网关错误，稍等后重试
+    await delay(4000)
+    return api(path, options, attempt + 1)
   }
   if (res.status === 401) {
     clearSession()

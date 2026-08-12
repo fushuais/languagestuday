@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getApiBase } from '../utils/auth.js'
 import { useAuth } from '../context/auth.jsx'
 import { tap } from '../utils/haptics.js'
@@ -19,6 +19,28 @@ export default function LoginView({ onClose }) {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [waitHint, setWaitHint] = useState('')
+
+  useEffect(() => {
+    if (!busy) {
+      setWaitHint('')
+      return undefined
+    }
+    const t5 = setTimeout(() => {
+      setWaitHint('服务器响应中…若为首次提交，免费云端实例可能正在冷启动，通常需 30–60 秒，请稍候。')
+    }, 5000)
+    const t25 = setTimeout(() => {
+      setWaitHint('仍在等待云端响应…网页会自动重试网关错误，请勿关闭弹窗。')
+    }, 25000)
+    const t45 = setTimeout(() => {
+      setWaitHint('响应时间较长。可关闭窗口稍后再试，不影响已输入内容。')
+    }, 45000)
+    return () => {
+      clearTimeout(t5)
+      clearTimeout(t25)
+      clearTimeout(t45)
+    }
+  }, [busy])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -127,6 +149,7 @@ export default function LoginView({ onClose }) {
           )}
 
           {error && <div className="login-error">{error}</div>}
+          {busy && waitHint && <div className="login-wait-hint">{waitHint}</div>}
 
           <button className="login-submit" type="submit" disabled={busy}>
             {busy ? '请稍候…' : mode === 'login' ? '登录并同步' : '创建账号'}

@@ -4365,6 +4365,14 @@ select:focus-visible {
   padding: 8px 10px;
 }
 
+.login-wait-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--text-dim) 10%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
 .login-submit {
   width: 100%;
   padding: 11px;
