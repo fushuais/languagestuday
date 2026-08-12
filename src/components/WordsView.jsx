@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SpeechPlayer from './SpeechPlayer.jsx'
 import ReadingView from './ReadingView.jsx'
 import GrammarView from './GrammarView.jsx'
@@ -47,6 +47,25 @@ const SentenceBox = ({ w }) =>
       {w.exZh && <div className="ws-zh">{w.exZh}</div>}
     </div>
   ) : null
+
+const WordRow = memo(({ w, mastered, lv }) => (
+  <div className={`word-row ${mastered ? 'learned' : ''}`}>
+    <div className="word-main">
+      <span className="word-ja">{w.ja}</span>
+      {w.kana && <span className="word-kana">{w.kana}</span>}
+    </div>
+    <LevelBadge level={w.level} />
+    <span className="word-zh">{w.zh}</span>
+    <SentenceBox w={w} />
+    <MasteryDots level={lv} />
+    <WordSpeech text={w.ja} />
+    {mastered && (
+      <span className="mini-mark on" title="已掌握（熟悉度满级）">
+        ✅
+      </span>
+    )}
+  </div>
+))
 
 export default function WordsView({ learned, onBumpWord }) {
   const [view, setView] = useState('home')
@@ -110,7 +129,7 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
   const [chapters, setChapters] = useState([])
   const [chapter, setChapter] = useState('all')
   const [search, setSearch] = useState('')
-  const [showCount, setShowCount] = useState(100)
+  const [showCount, setShowCount] = useState(30)
   const [mode, setMode] = useState('list')
   const [idx, setIdx] = useState(0)
   const [flipped, setFlipped] = useState(false)
@@ -160,6 +179,24 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
 
   const visible = filtered.slice(0, showCount)
 
+  const sentinelRef = useRef(null)
+  const remaining = filtered.length - visible.length
+
+  useEffect(() => {
+    if (remaining <= 0 || !sentinelRef.current) return
+    const el = sentinelRef.current
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setShowCount((n) => Math.min(n + 80, filtered.length))
+        }
+      },
+      { rootMargin: '240px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [remaining, filtered.length, mode])
+
   const chapterCounts = useMemo(() => {
     const counts = new Map()
     for (const w of words) {
@@ -175,7 +212,7 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
     ensure(lv)
     setBank(lv)
     setSearch('')
-    setShowCount(100)
+    setShowCount(30)
     setMode('list')
     setChapter('all')
     setQuiz(null)
@@ -186,7 +223,7 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
     tap()
     setChapter(id)
     setSearch('')
-    setShowCount(100)
+    setShowCount(30)
     setMode('list')
     setQuiz(null)
     setIdx(0)
@@ -194,25 +231,13 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
   }
 
   const rowOf = (w) => {
-    const mastered = masteredAnywhere(learned, w.ja)
-    const lv = maxLevelAnywhere(learned, w.ja)
     return (
-      <div key={w.ja} className={`word-row ${mastered ? 'learned' : ''}`}>
-        <div className="word-main">
-          <span className="word-ja">{w.ja}</span>
-          {w.kana && <span className="word-kana">{w.kana}</span>}
-        </div>
-        <LevelBadge level={w.level} />
-        <span className="word-zh">{w.zh}</span>
-        <SentenceBox w={w} />
-        <MasteryDots level={lv} />
-        <WordSpeech text={w.ja} />
-        {mastered && (
-          <span className="mini-mark on" title="已掌握（熟悉度满级）">
-            ✅
-          </span>
-        )}
-      </div>
+      <WordRow
+        key={w.ja}
+        w={w}
+        mastered={masteredAnywhere(learned, w.ja)}
+        lv={maxLevelAnywhere(learned, w.ja)}
+      />
     )
   }
 
@@ -366,7 +391,7 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
-            setShowCount(100)
+            setShowCount(30)
             if (mode === 'cards') {
               setIdx(0)
               setFlipped(false)
@@ -414,6 +439,7 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
       {mode === 'list' && (
         <div className="word-list">
           {listBody()}
+          {remaining > 0 && <div ref={sentinelRef} className="list-sentinel" aria-hidden="true" />}
           {!visible.length && (
             <EmptyHint text={search ? '没有匹配的单词，换个关键词。' : '加载中…'} />
           )}
@@ -422,7 +448,7 @@ function LibraryArea({ learned, onBumpWord, goHome }) {
 
       {mode === 'list' && visible.length < filtered.length && (
         <div className="load-more-row">
-          <button className="btn btn-ghost" onClick={() => setShowCount((n) => n + 100)}>
+          <button className="btn btn-ghost" onClick={() => setShowCount((n) => n + 80)}>
             加载更多（{filtered.length - visible.length} 剩余）
           </button>
         </div>
