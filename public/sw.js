@@ -1,6 +1,7 @@
 const VERSION = 'nihongo-__BUILD_ID__';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './life-english.json',
-  './data/scenes.json', './data/vocab-n5.json', './data/vocab-n4.json', './data/vocab-n3.json', './data/vocab-n2.json',
+  './data/vocab-n5.json', './data/vocab-n4.json', './data/vocab-n3.json', './data/vocab-n2.json',
+  './data/chapters.json', './data/grammar.json', './data/reading.json', './data/essay-templates.json',
   './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
