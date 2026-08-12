@@ -10,7 +10,8 @@ export default function SegmentedTabs({ items, active, onChange }) {
   const [hidden, setHidden] = useState(false)
 
   const update = () => {
-    const idx = Math.max(0, items.findIndex((it) => it.id === active))
+    const idx = items.findIndex((it) => it.id === active)
+    if (idx < 0) return
     const btn = btnRefs.current[idx]
     const list = listRef.current
     if (btn && list) {
