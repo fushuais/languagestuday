@@ -101,7 +101,7 @@ export default function WordsView({ learned, onBumpWord }) {
 
   if (view === 'reading') return <ReadingView />
 
-  return <GrammarView />
+  return <GrammarView goHome={() => go('home')} />
 }
 
 function LibraryArea({ learned, onBumpWord, goHome }) {

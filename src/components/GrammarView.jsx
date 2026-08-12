@@ -11,7 +11,7 @@ const LEVELS = [
   { id: 'N2', label: 'N2' },
 ]
 
-export default function GrammarView() {
+export default function GrammarView({ goHome }) {
   const [data, setData] = useState(null)
   const [err, setErr] = useState(false)
   const [level, setLevel] = useState('all')
@@ -40,9 +40,16 @@ export default function GrammarView() {
   if (active) return <GrammarDetail item={active} goBack={back} />
 
   return (
-    <section>
-      <h2 className="section-title">文法</h2>
-      <p className="section-sub">JLPT N4–N2 核心语法分级整理，每个语法点配多个例句详解，点击可朗读。</p>
+    <>
+      <div className="word-scene-head">
+        <button className="btn btn-ghost" onClick={goHome}>
+          ← 単語帳首页
+        </button>
+        <h2>
+          📐 文法
+          <small>N4–N2 核心语法分级整理 · 多例句详解</small>
+        </h2>
+      </div>
 
       <div className="word-level-filter" role="tablist" aria-label="文法级别">
         {LEVELS.map((lv) => (
@@ -77,7 +84,7 @@ export default function GrammarView() {
         ))}
         {!list.length && <p className="section-sub">该级别暂无语法点。</p>}
       </div>
-    </section>
+    </>
   )
 }
 
