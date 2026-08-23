@@ -5202,6 +5202,24 @@ select:focus-visible {
   font-size: 13px;
 }
 
+.cal-group {
+  margin-bottom: 12px;
+}
+
+.cal-group-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 6px;
+}
+
+.cal-group-past {
+  color: var(--text-faint);
+  opacity: 0.6;
+}
+
 .cal-event-card {
   display: flex;
   gap: 0;

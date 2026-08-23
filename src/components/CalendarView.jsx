@@ -17,6 +17,11 @@ function toISO(d) {
   return `${y}-${m}-${day}`
 }
 
+function parseISO(s) {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
 function isSameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
@@ -42,11 +47,6 @@ function getMonthGrid(year, month) {
   return grid
 }
 
-function formatDateFull(d) {
-  const weekdays = ['日', '月', '火', '水', '木', '金', '土']
-  return `${d.getMonth() + 1}月${d.getDate()}日（${weekdays[d.getDay()]}）`
-}
-
 export default function CalendarView({ events, onAdd, onUpdate, onDelete }) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
@@ -66,11 +66,26 @@ export default function CalendarView({ events, onAdd, onUpdate, onDelete }) {
     return map
   }, [events])
 
-  const selectedEvents = useMemo(() => {
-    if (!selected) return []
-    const key = toISO(selected)
-    return (eventsByDate[key] || []).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-  }, [selected, eventsByDate])
+  const sortedEvents = useMemo(() => {
+    return [...events].sort((a, b) => {
+      const dc = a.date.localeCompare(b.date)
+      if (dc !== 0) return dc
+      return (a.time || 'zz:zz').localeCompare(b.time || 'zz:zz')
+    })
+  }, [events])
+
+  const groupedEvents = useMemo(() => {
+    const groups = []
+    let lastDate = ''
+    sortedEvents.forEach((ev) => {
+      if (ev.date !== lastDate) {
+        groups.push({ date: ev.date, events: [] })
+        lastDate = ev.date
+      }
+      groups[groups.length - 1].events.push(ev)
+    })
+    return groups
+  }, [sortedEvents])
 
   const prevMonth = () => {
     tap()
@@ -190,25 +205,36 @@ export default function CalendarView({ events, onAdd, onUpdate, onDelete }) {
       <div className="cal-events">
         <div className="cal-events-header">
           <h3 className="cal-events-title">
-            {selected ? formatDateFull(selected) : '日付を選択'}
+            {events.length > 0 ? `全部予定（${events.length}件）` : '予定なし'}
           </h3>
         </div>
-        {selected && selectedEvents.length === 0 && (
-          <div className="cal-empty">予定なし</div>
+        {events.length === 0 && (
+          <div className="cal-empty">＋ボタンで予定を追加</div>
         )}
-        {selectedEvents.map((ev) => {
-          const cat = CATEGORIES.find((c) => c.id === ev.category)
+        {groupedEvents.map((group) => {
+          const d = parseISO(group.date)
+          const weekdays = ['日', '月', '火', '水', '木', '金', '土']
+          const label = `${d.getMonth() + 1}月${d.getDate()}日（${weekdays[d.getDay()]}）`
+          const isPast = d < new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
           return (
-            <div key={ev.id} className="cal-event-card glass-card" onClick={() => openEdit(ev)}>
-              <div className="cal-event-bar" style={{ background: cat?.color || 'var(--text-dim)' }} />
-              <div className="cal-event-body">
-                <div className="cal-event-top">
-                  <span className="cal-event-cat" style={{ color: cat?.color }}>{cat?.label}</span>
-                  {ev.time && <span className="cal-event-time">{ev.time}</span>}
-                </div>
-                <div className="cal-event-title">{ev.title}</div>
-                {ev.note && <div className="cal-event-note">{ev.note}</div>}
-              </div>
+            <div key={group.date} className="cal-group">
+              <div className={`cal-group-date ${isPast ? 'cal-group-past' : ''}`}>{label}</div>
+              {group.events.map((ev) => {
+                const cat = CATEGORIES.find((c) => c.id === ev.category)
+                return (
+                  <div key={ev.id} className="cal-event-card glass-card" onClick={() => openEdit(ev)}>
+                    <div className="cal-event-bar" style={{ background: cat?.color || 'var(--text-dim)' }} />
+                    <div className="cal-event-body">
+                      <div className="cal-event-top">
+                        <span className="cal-event-cat" style={{ color: cat?.color }}>{cat?.label}</span>
+                        {ev.time && <span className="cal-event-time">{ev.time}</span>}
+                      </div>
+                      <div className="cal-event-title">{ev.title}</div>
+                      {ev.note && <div className="cal-event-note">{ev.note}</div>}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )
         })}
