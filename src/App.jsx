@@ -27,6 +27,8 @@ import {
   saveLang,
   loadTheme,
   saveTheme,
+  loadSchedule,
+  saveSchedule,
 } from './utils/storage.js'
 import { loadProfile, saveProfile } from './utils/profile.js'
 import { setSpeechLang, stopSpeech } from './utils/speech.js'
@@ -38,6 +40,7 @@ const HistoryView = lazy(() => import('./components/HistoryView.jsx'))
 const Settings = lazy(() => import('./components/Settings.jsx'))
 const About = lazy(() => import('./components/About.jsx'))
 const WordsView = lazy(() => import('./components/WordsView.jsx'))
+const CalendarView = lazy(() => import('./components/CalendarView.jsx'))
 
 const JA_TOPICS = [...TOPICS, ...INTERVIEW.map(interviewToTopic)]
 const ALL_BY_ID = Object.fromEntries([...JA_TOPICS, ...EN_TOPICS].map((t) => [t.id, t]))
@@ -47,6 +50,7 @@ const VIEWS_JA = [
   { id: 'interview', label: '面接対策' },
   { id: 'words', label: '単語帳' },
   { id: 'topics', label: '話題カード' },
+  { id: 'calendar', label: '日程表' },
   { id: 'history', label: '練習記録' },
 ]
 
@@ -100,6 +104,7 @@ export default function App() {
   const [menuClosing, setMenuClosing] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [practiceActive, setPracticeActive] = useState(false)
+  const [schedule, setSchedule] = useState(loadSchedule)
 
   const debouncedSave = useRef({
     history: debounce((v) => saveHistory(v), 600),
@@ -108,6 +113,7 @@ export default function App() {
     topicStates: debounce((v) => saveTopicStates(v), 400),
     goal: debounce((v) => saveGoal(v), 400),
     learnedWords: debounce((v) => saveWordsProgress(v), 400),
+    schedule: debounce((v) => saveSchedule(v), 400),
   }).current
 
   // history 最新值引用：addRecord/clearHistory 需在 setState 后立即拿到最终列表用于保存
@@ -431,6 +437,24 @@ export default function App() {
     debouncedSave.goal(min)
   }
 
+  const handleAddEvent = (ev) => {
+    const next = [...schedule, ev]
+    setSchedule(next)
+    debouncedSave.schedule(next)
+  }
+
+  const handleUpdateEvent = (ev) => {
+    const next = schedule.map((e) => (e.id === ev.id ? ev : e))
+    setSchedule(next)
+    debouncedSave.schedule(next)
+  }
+
+  const handleDeleteEvent = (id) => {
+    const next = schedule.filter((e) => e.id !== id)
+    setSchedule(next)
+    debouncedSave.schedule(next)
+  }
+
   const handleSearch = (q) => {
     setSearchQuery(q)
     setView('topics')
@@ -624,6 +648,17 @@ export default function App() {
             onQueryChange={setSearchQuery}
             lang={lang}
           />
+        )}
+
+        {view === 'calendar' && (
+          <Suspense fallback={<div className="view-fallback" />}>
+            <CalendarView
+              events={schedule}
+              onAdd={handleAddEvent}
+              onUpdate={handleUpdateEvent}
+              onDelete={handleDeleteEvent}
+            />
+          </Suspense>
         )}
 
         {view === 'sentences' && (

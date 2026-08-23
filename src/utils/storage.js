@@ -5,6 +5,7 @@ const GOAL_KEY = 'nihongo-goal-v1'
 const SPEECH_KEY = 'nihongo-speech-prefs-v1'
 const LANG_KEY = 'nihongo-lang-v1'
 const THEME_KEY = 'nihongo-theme-v1'
+const SCHEDULE_KEY = 'nihongo-schedule-v1'
 
 export const DEFAULT_GOAL_MIN = 5
 export const DEFAULT_SPEECH = { voice: 'ja-JP-NanamiNeural', rate: 1, enabled: true, engine: 'auto' }
@@ -121,6 +122,23 @@ export function loadTheme() {
 export function saveTheme(theme) {
   try {
     localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    // ignore
+  }
+}
+
+export function loadSchedule() {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveSchedule(events) {
+  try {
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(events))
   } catch {
     // ignore
   }
