@@ -46,7 +46,6 @@ const JA_TOPICS = [...TOPICS, ...INTERVIEW.map(interviewToTopic)]
 const ALL_BY_ID = Object.fromEntries([...JA_TOPICS, ...EN_TOPICS].map((t) => [t.id, t]))
 
 const VIEWS_JA = [
-  { id: 'practice', label: '連続練習' },
   { id: 'interview', label: '面接対策' },
   { id: 'words', label: '単語帳' },
   { id: 'topics', label: '話題カード' },
@@ -383,7 +382,8 @@ export default function App() {
         setSearchQuery('')
         if (next === 'en' && view === 'interview') setView('practice')
         if (next === 'en' && view === 'words') setView('practice')
-        if (next === 'ja' && view === 'sentences') setView('practice')
+        if (next === 'ja' && view === 'sentences') setView('interview')
+        if (next === 'ja' && view === 'practice') setView('interview')
         setSwitching(false)
       }, 300)
   }

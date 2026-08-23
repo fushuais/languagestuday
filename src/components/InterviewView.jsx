@@ -26,8 +26,10 @@ export default function InterviewView({
   const [editingId, setEditingId] = useState(null)
   const [editDraft, setEditDraft] = useState('')
   const [openSections, setOpenSections] = useState(() => new Set())
+  const [answerMode, setAnswerMode] = useState('simple')
 
   const finalAnswer = (item) => overrides[item.id] ?? renderAnswer(item.a, profile)
+  const simpleAnswer = (item) => renderAnswer(item.simple, profile)
 
   const toggleSection = (id) =>
     setOpenSections((s) => {
@@ -55,7 +57,7 @@ export default function InterviewView({
         <div>
           <h2 className="section-title">面接対策 · 专门学校入学面试</h2>
           <p className="section-sub">
-            共 {INTERVIEW.length} 问高频问题。答案会根据「个人资料」自动替换你的信息，也可以逐题编辑。
+            共 {INTERVIEW.length} 问高频问题。简洁版方便记忆，详细版用于深入练习。
           </p>
         </div>
         <div className="iv-toggle">
@@ -67,6 +69,17 @@ export default function InterviewView({
           </button>
         </div>
       </div>
+
+      {mode === 'list' && (
+        <div className="iv-answer-toggle">
+          <button className={`iv-at-btn ${answerMode === 'simple' ? 'active' : ''}`} onClick={() => setAnswerMode('simple')}>
+            📝 簡潔版
+          </button>
+          <button className={`iv-at-btn ${answerMode === 'detailed' ? 'active' : ''}`} onClick={() => setAnswerMode('detailed')}>
+            📖 詳細版
+          </button>
+        </div>
+      )}
 
       <div className="profile-panel">
         <button className="profile-head" onClick={() => setShowProfile((s) => !s)}>
@@ -183,13 +196,17 @@ export default function InterviewView({
                                 </>
                               ) : (
                                 <>
-                                  <div className="iv-answer">{finalAnswer(it)}</div>
+                                  {answerMode === 'simple' ? (
+                                    <div className="iv-answer iv-simple">{simpleAnswer(it)}</div>
+                                  ) : (
+                                    <div className="iv-answer">{finalAnswer(it)}</div>
+                                  )}
                                   {overrides[it.id] && (
                                     <div className="override-note">✏️ 已使用你自定义的答案</div>
                                   )}
                                   <div className="iv-actions">
                                     <SpeechPlayer text={plainText(it.q)} compact />
-                                    <SpeechPlayer text={plainText(finalAnswer(it))} compact />
+                                    <SpeechPlayer text={plainText(answerMode === 'simple' ? simpleAnswer(it) : finalAnswer(it))} compact />
                                     <button
                                       className="btn btn-ghost"
                                       onClick={() => {
@@ -200,7 +217,7 @@ export default function InterviewView({
                                       ✏️ 编辑答案
                                     </button>
                                     <button className="btn btn-primary" onClick={() => onStart(it)}>
-                                      ▶ 連続練習
+                                      ▶ 練習で話す
                                     </button>
                                   </div>
                                 </>
@@ -249,7 +266,7 @@ export default function InterviewView({
                 <div className="iv-actions">
                   <SpeechPlayer text={plainText(finalAnswer(item))} compact />
                   <button className="btn btn-primary" onClick={() => onStart(item)}>
-                    ▶ 連続練習で話す
+                    ▶ 練習で話す
                   </button>
                 </div>
               </div>
