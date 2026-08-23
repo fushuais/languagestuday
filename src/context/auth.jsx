@@ -54,6 +54,17 @@ export function mergeCloudState(localState, cloudState, now = Date.now()) {
     }
   }
 
+  const localSchedule = Array.isArray(local.schedule) ? local.schedule : []
+  const cloudSchedule = Array.isArray(cloud.schedule) ? cloud.schedule : []
+  const scheduleById = new Map()
+  ;[...localSchedule, ...cloudSchedule].forEach((ev) => {
+    if (ev && ev.id) scheduleById.set(ev.id, { ...(scheduleById.get(ev.id) || {}), ...ev })
+  })
+  merged.schedule = [...scheduleById.values()].sort((a, b) => {
+    const dc = (a.date || '').localeCompare(b.date || '')
+    return dc !== 0 ? dc : (a.time || 'zz:zz').localeCompare(b.time || 'zz:zz')
+  })
+
   const lsrc = local.syncedAt
   const csyn = cloud.syncedAt
   const pick = (key, fallbackLocal, fallbackCloud) => {

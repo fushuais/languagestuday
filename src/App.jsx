@@ -134,6 +134,7 @@ export default function App() {
     topicStates,
     goal,
     learnedWords,
+    schedule,
     theme,
     lang,
     speechPrefs,
@@ -229,6 +230,8 @@ export default function App() {
         setTopicStates(merged.topicStates)
         setGoal(merged.goal)
         setLearnedWords(merged.learnedWords)
+        setSchedule(merged.schedule)
+        saveSchedule(merged.schedule)
         if (merged.theme !== theme) {
           setTheme(merged.theme)
           saveTheme(merged.theme)
